@@ -2,11 +2,19 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./config/connectFn");
+const { generateToken } = require("./controllers/voiceRomController.js");
+
+
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
+
+
+
+// routes
+app.get('/api/agora/token', generateToken);
 
 connectDB();
 
