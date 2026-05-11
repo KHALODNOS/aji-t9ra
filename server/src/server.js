@@ -13,8 +13,13 @@ app.use(express.json());
 
 
 
+
 // routes
+const authRoutes = require("./routes/authRoutes");
+app.use("/api/auth", authRoutes);
+
 app.get('/api/agora/token', generateToken);
+
 
 connectDB();
 

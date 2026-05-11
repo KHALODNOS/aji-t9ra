@@ -6,9 +6,9 @@ exports.generateToken = (req, res) => {
 
     const appId = process.env.AGORA_APP_ID;
     const appCertificate = process.env.AGORA_APP_CERTIFICATE;
-    const uid = 0; // 0 تعني أن أغورا ستنشئ معرفاً عشوائياً
+    const uid = 0; 
     const role = RtcRole.PUBLISHER;
-    const privilegeExpiredTs = Math.floor(Date.now() / 1000) + 3600; // صلاحية لساعة واحدة
+    const privilegeExpiredTs = Math.floor(Date.now() / 1000) + 3600; 
 
     const token = RtcTokenBuilder.buildTokenWithUid(appId, appCertificate, channelName, uid, role, privilegeExpiredTs);
 
