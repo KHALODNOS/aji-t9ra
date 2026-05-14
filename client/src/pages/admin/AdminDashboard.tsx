@@ -1,10 +1,10 @@
 import React from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
-import { 
-  Users, 
-  BookOpen, 
-  Video, 
-  TrendingUp, 
+import {
+  Users,
+  BookOpen,
+  Video,
+  TrendingUp,
   ArrowUpRight,
   Clock
 } from 'lucide-react';
@@ -67,21 +67,21 @@ const AdminDashboard = () => {
               ))}
             </div>
           </div>
-          
+
           <div className="bg-[#003F87] rounded-[3rem] p-10 text-white shadow-xl shadow-[#003F87]/20 relative overflow-hidden flex flex-col justify-between min-h-[400px]">
-             <div className="relative z-10">
-                <h2 className="text-2xl font-black mb-4">نصيحة اليوم</h2>
-                <p className="text-blue-100 leading-relaxed font-medium">
-                  المتابعة المستمرة لطلبات المدرسين تساهم في نمو المنصة بنسبة 20% أسرع.
-                </p>
-             </div>
-             <button className="relative z-10 bg-white text-[#003F87] font-black py-4 rounded-2xl shadow-lg hover:bg-blue-50 transition-all text-center">
-                مراجعة الطلبات الآن
-             </button>
-             
-             {/* Abstract Decorations */}
-             <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-             <div className="absolute bottom-[-10%] left-[-10%] w-48 h-48 bg-white/5 rounded-full blur-2xl"></div>
+            <div className="relative z-10">
+              <h2 className="text-2xl font-black mb-4">نصيحة اليوم</h2>
+              <p className="text-blue-100 leading-relaxed font-medium">
+                المتابعة المستمرة لطلبات المدرسين تساهم في نمو المنصة بنسبة 20% أسرع.
+              </p>
+            </div>
+            <button className="relative z-10 bg-white text-[#003F87] font-black py-4 rounded-2xl shadow-lg hover:bg-blue-50 transition-all text-center">
+              مراجعة الطلبات الآن
+            </button>
+
+            {/* Abstract Decorations */}
+            <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-[-10%] left-[-10%] w-48 h-48 bg-white/5 rounded-full blur-2xl"></div>
           </div>
         </div>
       </div>

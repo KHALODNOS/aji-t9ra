@@ -7,6 +7,7 @@ import StudentDashboard from './pages/student/StudentDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ContentReview from './pages/admin/ContentReview';
+import LOADINGPAGE from './pages/common/LOADINGPAGE';
 
 function App() {
   return (
@@ -48,22 +49,27 @@ function App() {
         <Route
           path="/admin/users"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <UserManagement />
-            </ProtectedRoute>
+            // <ProtectedRoute allowedRoles={['admin']}>
+            <UserManagement />
+            {/* </ProtectedRoute> */}
           }
         />
         <Route
           path="/admin/content-review"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <ContentReview />
-            </ProtectedRoute>
+            // <ProtectedRoute allowedRoles={['admin']}>
+            <ContentReview />
+            // </ProtectedRoute>
           }
         />
 
         {/* Default Route */}
         <Route path="/" element={<Navigate to="/login" replace />} />
+
+        <LOADINGPAGE
+          onProfessorClick={() => setPage("teacher-register")}
+          onAdminClick={() => setPage("admin")}
+        />
       </Routes>
     </div>
   );
