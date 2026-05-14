@@ -1,68 +1,128 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import './styles/designTokens.css';
+@import url('https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Cairo:wght@200;300;400;500;600;700;800;900&family=Inter:wght@400;600&family=Lora:ital,wght@0,400;0,700;1,400&display=swap');
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+@layer base {
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+  html,
+  body {
+    font-family: var(--font-body);
+    line-height: 1.6;
+    background-image: url('./assets/background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    color: var(--color-on-background);
+    min-height: 100vh;
+    font-weight: 400;
+    text-align: right;
+    direction: rtl;
+    /* Editorial alignment constraint */
   }
-  a:hover {
-    color: #747bff;
+
+  h1 {
+    color: var(--color-sage);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    line-height: 1.2;
+    text-shadow: none !important;
   }
+
+  h2,
+  h3 {
+    color: var(--color-sage);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    text-shadow: none !important;
+  }
+
+  p {
+    margin-bottom: 1.5rem;
+    color: var(--color-on-background);
+    text-shadow: none !important;
+  }
+
+  section {
+    padding: 4rem 2rem;
+  }
+
   button {
-    background-color: #f9f9f9;
+    font-family: var(--font-body);
+    text-shadow: none !important;
+    box-shadow: none !important;
   }
+}
+
+/* Editorial Components */
+.card-premium {
+  background: #ffffff;
+  border: var(--border-editorial);
+  border-radius: var(--radius-md);
+  padding: 3rem;
+  margin-bottom: 2rem;
+  transition: border-color 0.3s ease;
+  box-shadow: none !important;
+}
+
+.card-premium:hover {
+  border-color: var(--color-header-h1);
+  transform: none;
+  box-shadow: none !important;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  padding: 0.75rem 2rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: opacity 0.2s;
+  box-shadow: none !important;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  background-color: var(--color-primary);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  padding: 0.75rem 2rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.input-stitch {
+  border: 1px solid #D1D5DB;
+  border-radius: var(--radius-sm);
+  padding: 0.875rem 1rem;
+  width: 100%;
+  background: #ffffff;
+  transition: border-color 0.2s;
+  color: var(--color-on-surface);
+  box-shadow: none !important;
+}
+
+.input-stitch:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: none !important;
+}
+
+/* Whitespace & Layout */
+.onboarding-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 4rem 1rem;
 }

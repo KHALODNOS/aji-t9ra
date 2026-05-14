@@ -1,8 +1,9 @@
+
+
 const User = require("../models/User");
 const generateOtp = require("../utils/generateOtp");
 const sendEmail = require("../utils/sendEmail");
 const jwt = require("jsonwebtoken");
-
 // Helper to generate JWT
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET || "default_secret", {
@@ -14,7 +15,7 @@ const generateToken = (id) => {
 exports.registration = async (req, res) => {
     try {
         const { email, password, Role } = req.body;
-        
+
         const findUser = await User.findOne({ email });
         if (findUser) {
             return res.status(400).json({ message: "User already exists" });
@@ -24,7 +25,7 @@ exports.registration = async (req, res) => {
 
         const newUser = new User({
             email,
-            password, 
+            password,
             Role,
             EmailOtp: otpCode,
             registrationStep: 1
@@ -62,13 +63,14 @@ exports.verifyEmail = async (req, res) => {
         // Generate Token so subsequent steps can use it
         const token = generateToken(user._id);
 
-        return res.status(200).json({ 
+        return res.status(200).json({
             message: "Step 2: Email verified successfully",
             token,
             user: {
                 id: user._id,
                 email: user.email,
-                Role: user.Role
+                Role: user.Role,
+                status: user.status
             }
         });
     } catch (error) {
@@ -95,7 +97,8 @@ exports.login = async (req, res) => {
                 id: user._id,
                 email: user.email,
                 Role: user.Role,
-                onboardingCompleted: user.onboardingCompleted
+                onboardingCompleted: user.onboardingCompleted,
+                status: user.status
             }
         });
     } catch (error) {
@@ -150,14 +153,17 @@ exports.verifyPhoneOTP = async (req, res) => {
 
 exports.teacherStep1 = async (req, res) => {
     try {
-        const { photoProfile, videoProfile } = req.body;
         const user = req.user;
 
-        if (user.Role !== "teacher") return res.status(403).json({ message: "Forbidden" });
+        if (req.files) {
+            if (req.files.photoProfile) {
+                user.photoProfile = req.files.photoProfile[0].path;
+            }
+            if (req.files.videoProfile) {
+                user.videoProfile = req.files.videoProfile[0].path;
+            }
+        }
 
-        if (photoProfile) user.photoProfile = photoProfile;
-        if (videoProfile) user.videoProfile = videoProfile;
-        
         user.registrationStep = 5;
         await user.save();
 
@@ -171,8 +177,6 @@ exports.teacherStep2 = async (req, res) => {
     try {
         const { username, sexe, location } = req.body;
         const user = req.user;
-
-        if (user.Role !== "teacher") return res.status(403).json({ message: "Forbidden" });
 
         if (username) user.username = username;
         if (sexe) user.Sexe = sexe;
@@ -189,11 +193,9 @@ exports.teacherStep2 = async (req, res) => {
 
 exports.teacherStep3 = async (req, res) => {
     try {
-    
+
         const { fluentLanguages } = req.body;
         const user = req.user;
-
-        if (user.Role !== "teacher") return res.status(403).json({ message: "Forbidden" });
 
         if (fluentLanguages) user.fluentLanguages = fluentLanguages;
 
@@ -210,8 +212,6 @@ exports.teacherStep4 = async (req, res) => {
     try {
         const { education, experience } = req.body;
         const user = req.user;
-
-        if (user.Role !== "teacher") return res.status(403).json({ message: "Forbidden" });
 
         if (education) user.education = education;
         if (experience) user.experience = experience;
@@ -230,8 +230,6 @@ exports.teacherStep5 = async (req, res) => {
         const { socialLinks } = req.body;
         const user = req.user;
 
-        if (user.Role !== "teacher") return res.status(403).json({ message: "Forbidden" });
-
         if (socialLinks) user.socialLinks = socialLinks;
 
         user.registrationStep = 9;
@@ -248,8 +246,6 @@ exports.teacherStep6 = async (req, res) => {
         const { acceptanceOfTermsAndConditions } = req.body;
         const user = req.user;
 
-        if (user.Role !== "teacher") return res.status(403).json({ message: "Forbidden" });
-
         if (acceptanceOfTermsAndConditions !== undefined) {
             user.acceptanceOfTermsAndConditions = acceptanceOfTermsAndConditions;
         }
@@ -257,13 +253,14 @@ exports.teacherStep6 = async (req, res) => {
         if (user.acceptanceOfTermsAndConditions) {
             user.onboardingCompleted = true;
             user.registrationStep = 10;
+            user.status = "pending";
         }
 
         await user.save();
 
-        return res.status(200).json({ 
-            message: user.onboardingCompleted ? "Teacher Onboarding Completed" : "Terms must be accepted", 
-            onboardingCompleted: user.onboardingCompleted 
+        return res.status(200).json({
+            message: user.onboardingCompleted ? "Teacher Onboarding Completed" : "Terms must be accepted",
+            onboardingCompleted: user.onboardingCompleted
         });
     } catch (error) {
         return res.status(500).json({ message: error.message });
@@ -277,8 +274,6 @@ exports.studentStep1 = async (req, res) => {
     try {
         const { username, dateOfBirth, sexe } = req.body;
         const user = req.user;
-
-        if (user.Role !== "student") return res.status(403).json({ message: "Forbidden" });
 
         if (username) user.username = username;
         if (dateOfBirth) user.DateOfBirth = dateOfBirth;
@@ -298,8 +293,6 @@ exports.studentStep2 = async (req, res) => {
         const { subjectOfLearn, targetLanguage } = req.body;
         const user = req.user;
 
-        if (user.Role !== "student") return res.status(403).json({ message: "Forbidden" });
-
         if (subjectOfLearn) user.SubjectOfLearn = subjectOfLearn;
         if (targetLanguage) user.TargetLanguage = targetLanguage;
 
@@ -317,8 +310,6 @@ exports.studentStep3 = async (req, res) => {
         const { level } = req.body;
         const user = req.user;
 
-        if (user.Role !== "student") return res.status(403).json({ message: "Forbidden" });
-
         if (level) user.Level = level;
 
         user.registrationStep = 7;
@@ -332,21 +323,21 @@ exports.studentStep3 = async (req, res) => {
 
 exports.studentStep4 = async (req, res) => {
     try {
-        const { avatar, nickname } = req.body;
+        const { nickname } = req.body;
         const user = req.user;
 
-        if (user.Role !== "student") return res.status(403).json({ message: "Forbidden" });
-
-        if (avatar) user.avatar = avatar;
+        if (req.file) {
+            user.avatar = req.file.path;
+        }
         if (nickname) user.nickname = nickname;
 
         user.onboardingCompleted = true;
         user.registrationStep = 8;
         await user.save();
 
-        return res.status(200).json({ 
-            message: "Student Onboarding Completed", 
-            onboardingCompleted: user.onboardingCompleted 
+        return res.status(200).json({
+            message: "Student Onboarding Completed",
+            onboardingCompleted: user.onboardingCompleted
         });
     } catch (error) {
         return res.status(500).json({ message: error.message });

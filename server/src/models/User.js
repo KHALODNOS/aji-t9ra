@@ -25,6 +25,12 @@ const UserSchema = new mongoose.Schema({
         default: "student",
     },
 
+    status: {
+        type: String,
+        enum: ["pending", "active", "blocked"],
+        default: "active",
+    },
+
     PhoneNumber: {
         type: String,
         unique: true,

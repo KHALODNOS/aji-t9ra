@@ -16,7 +16,10 @@ app.use(express.json());
 
 // routes
 const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get('/api/agora/token', generateToken);
 

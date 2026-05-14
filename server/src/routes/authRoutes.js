@@ -2,7 +2,15 @@ const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const roleMiddleware = require("../middlewares/roleMiddleware");
+const { storage } = require("../config/cloudinary");
+const multer = require("multer");
+const upload = multer({ storage: storage })
 
+const teacherFields = upload.fields([
+    { name: "photoProfile", maxCount: 1 },
+    { name: "videoProfile", maxCount: 1 }
+])
 // Public Routes
 router.post("/register", authController.registration);
 router.post("/login", authController.login);
@@ -16,18 +24,18 @@ router.post("/send-phone-otp", authMiddleware, authController.sendPhoneOTP);
 router.post("/verify-phone-otp", authMiddleware, authController.verifyPhoneOTP);
 
 // --- Teacher Onboarding Steps ---
-router.post("/teacher/step1", authMiddleware, authController.teacherStep1);
-router.post("/teacher/step2", authMiddleware, authController.teacherStep2);
-router.post("/teacher/step3", authMiddleware, authController.teacherStep3);
-router.post("/teacher/step4", authMiddleware, authController.teacherStep4);
-router.post("/teacher/step5", authMiddleware, authController.teacherStep5);
-router.post("/teacher/step6", authMiddleware, authController.teacherStep6);
+router.post("/teacher/step1", authMiddleware, roleMiddleware("teacher"), teacherFields, authController.teacherStep1);
+router.post("/teacher/step2", authMiddleware, roleMiddleware("teacher"), authController.teacherStep2);
+router.post("/teacher/step3", authMiddleware, roleMiddleware("teacher"), authController.teacherStep3);
+router.post("/teacher/step4", authMiddleware, roleMiddleware("teacher"), authController.teacherStep4);
+router.post("/teacher/step5", authMiddleware, roleMiddleware("teacher"), authController.teacherStep5);
+router.post("/teacher/step6", authMiddleware, roleMiddleware("teacher"), authController.teacherStep6);
 
 // --- Student Onboarding Steps ---
-router.post("/student/step1", authMiddleware, authController.studentStep1);
-router.post("/student/step2", authMiddleware, authController.studentStep2);
-router.post("/student/step3", authMiddleware, authController.studentStep3);
-router.post("/student/step4", authMiddleware, authController.studentStep4);
+router.post("/student/step1", authMiddleware, roleMiddleware("student , teacher"), authController.studentStep1);
+router.post("/student/step2", authMiddleware, roleMiddleware("student , teacher"), authController.studentStep2);
+router.post("/student/step3", authMiddleware, roleMiddleware("student , teacher"), authController.studentStep3);
+router.post("/student/step4", authMiddleware, roleMiddleware("student , teacher"), upload.single("avatar"), authController.studentStep4);
 
 module.exports = router;
 

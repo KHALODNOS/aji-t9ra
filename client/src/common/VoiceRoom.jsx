@@ -54,7 +54,7 @@ export default function VocalRoom() {
 
     return (
         <div style={{ textAlign: "center", marginTop: "50px" }}>
-            <h1>LinguistPro Voice Room 🎙️</h1>
+            <h1 style={{ color: "#5DA296" }}>أجي تقرا Voice Room 🎙️</h1>
             {joined ? (
                 <button onClick={endCall} style={{ background: "red", color: "white", padding: "15px", borderRadius: "10px", border: "none", cursor: "pointer" }}>
                     Leave Room
