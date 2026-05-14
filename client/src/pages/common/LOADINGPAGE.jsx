@@ -1,6 +1,6 @@
 import React from "react";
 
-const LOADINGPAGE = ({ onProfessorClick }) => {
+const LOADINGPAGE = ({ onProfessorClick, onAdminClick }) => {
   const logoCandidates = ["/logo.jpeg"];
 
   const handleLogoError = (event) => {
@@ -134,7 +134,12 @@ const LOADINGPAGE = ({ onProfessorClick }) => {
         .title { margin: 0; font-size: clamp(2.3rem, 1.8rem + 2.4vw, 4rem); line-height: 1.15; font-weight: 800; }
         .desc { margin: 14px 0 24px; color: var(--muted); font-size: clamp(1.2rem, 1.05rem + 0.7vw, 1.65rem); line-height: 1.95; max-width: 100%; }
 
-        .btn-row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .btn-row {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 20px;
+        }
         .btn {
           border: none;
           border-radius: 14px;
@@ -264,15 +269,15 @@ const LOADINGPAGE = ({ onProfessorClick }) => {
               <a href="#tips" className="nav-link">
                 نصائح
               </a>
-              <a href="#footer" className="nav-link">
-                تواصل
+              <a onClick={() => onAdminClick()} className="nav-link" style={{ cursor: 'pointer' }}>
+                لوحة التحكم
               </a>
               <button
                 className="nav-btn"
                 type="button"
                 onClick={onProfessorClick}
               >
-                فضاء الأستاذ
+                تسجيل الدخول / إنشاء حساب
               </button>
             </div>
           </div>
@@ -299,7 +304,7 @@ const LOADINGPAGE = ({ onProfessorClick }) => {
                   type="button"
                   onClick={onProfessorClick}
                 >
-                  فضاء الأستاذ
+                  تسجيل الدخول / إنشاء حساب
                 </button>
               </div>
             </div>
@@ -456,3 +461,4 @@ const LOADINGPAGE = ({ onProfessorClick }) => {
 };
 
 export default LOADINGPAGE;
+
