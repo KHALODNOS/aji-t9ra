@@ -37,7 +37,7 @@ const PendingReview: React.FC<PendingReviewProps> = ({ username }) => {
             مرحباً {username || 'بك'}! شكراً لانضمامك إلى <span className="font-bold text-[#003F87]">أجي تقرا</span>. 
             يقوم فريقنا حالياً بمراجعة مؤهلاتك وخبراتك لضمان تقديم أفضل تجربة تعليمية لطلابنا.
             <br /><br />
-            ستتلقى إشعاراً عبر البريد الإلكتروني فور تفعيل حسابك.
+            ستتلقى إشعاراً فور تفعيل حسابك.
           </p>
           
           <div className="space-y-4">
