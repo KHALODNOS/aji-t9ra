@@ -7,7 +7,10 @@ const roleMiddleware = (...roles) => {
 
         // Check if user's role is in the allowed roles
         // Note: We use req.user.Role (Capital R) to match the database schema
-        if (!roles.includes(req.user.Role)) {
+        const userRole = (req.user.Role || '').toLowerCase();
+        const allowedRoles = roles.flat().map(r => r.toLowerCase());
+
+        if (!allowedRoles.includes(userRole)) {
             return res.status(403).json({
                 message: `Forbidden: Access denied for role ${req.user.Role}`,
             });

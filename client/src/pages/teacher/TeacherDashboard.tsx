@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut, BookOpen, Clock, Settings } from 'lucide-react';
+import PendingReview from '../../components/ui/PendingReview';
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
@@ -13,25 +14,7 @@ const TeacherDashboard = () => {
   };
 
   if (user.status === 'pending') {
-    return (
-      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center p-6" dir="rtl">
-        <div className="max-w-md w-full bg-white rounded-[2rem] shadow-2xl p-10 text-center border border-[#003F87]/5">
-          <div className="w-20 h-20 bg-[#003F87]/5 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-pulse">
-            <Clock className="w-10 h-10 text-[#003F87]" />
-          </div>
-          <h1 className="text-2xl font-black text-[#003F87] mb-4 font-heading">حسابك قيد المراجعة</h1>
-          <p className="text-slate-600 leading-relaxed mb-8 font-medium">
-            شكراً لانضمامك إلى "أجي تقرا". فريقنا يقوم حالياً بمراجعة ملفك الشخصي لضمان أفضل جودة تعليمية. سنقوم بإشعارك فور تفعيل حسابك.
-          </p>
-          <button 
-            onClick={handleLogout}
-            className="w-full py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
-          >
-            <LogOut size={20} /> تسجيل الخروج
-          </button>
-        </div>
-      </div>
-    );
+    return <PendingReview username={user.username || user.email} />;
   }
 
   return (

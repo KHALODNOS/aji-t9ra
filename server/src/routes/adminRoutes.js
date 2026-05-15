@@ -14,5 +14,13 @@ router.delete("/reject-teacher/:userId", adminController.rejectTeacher);
 
 router.get("/users", adminController.getAllUsers);
 router.put("/toggle-status/:userId", adminController.toggleUserStatus);
+router.get("/stats", adminController.getDashboardStats);
+
+// Content Review Routes
+router.get("/pending-content", adminController.getPendingContent);
+router.put("/approve-content/:contentId", adminController.approveContent);
+router.delete("/reject-content/:contentId", adminController.rejectContent);
+router.post("/bulk-approve-content", adminController.bulkApproveContent);
+router.post("/bulk-reject-content", adminController.bulkRejectContent);
 
 module.exports = router;

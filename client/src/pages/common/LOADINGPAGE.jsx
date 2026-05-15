@@ -1,464 +1,559 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import logo from "../../assets/logo.png";
+import {
+  LogIn,
+  UserPlus,
+  ArrowLeft,
+  Globe,
+  Sparkles,
+  BookOpen,
+  Headphones,
+  MessageCircle,
+  PlayCircle
+} from "lucide-react";
 
 const LOADINGPAGE = ({ onProfessorClick, onAdminClick }) => {
-  const logoCandidates = ["/logo.jpeg"];
+  const [scrolled, setScrolled] = useState(false);
 
-  const handleLogoError = (event) => {
-    const index = Number(event.currentTarget.dataset.index || 0);
-    const nextIndex = index + 1;
-    if (nextIndex < logoCandidates.length) {
-      event.currentTarget.src = logoCandidates[nextIndex];
-      event.currentTarget.dataset.index = String(nextIndex);
-    } else {
-      event.currentTarget.style.display = "none";
-    }
-  };
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
 
         :root {
-          --bg: #f7f8f2;
-          --text: #1f2937;
-          --muted: #667085;
-          --primary: #0f4a97;
-          --green: #58cc02;
-          --green-dark: #479e08;
-          --line: #e5ebf5;
-          --footer: #12233f;
+          --primary: #003F87;
+          --primary-light: #EBF2FF;
+          --secondary: #FFD700;
+          --accent: #58CC02;
+          --text-dark: #0F172A;
+          --text-muted: #64748B;
+          --glass: rgba(255, 255, 255, 0.85);
+          --shadow-premium: 0 20px 40px -15px rgba(0, 63, 135, 0.1);
         }
 
-        * { box-sizing: border-box; }
-        html, body, #root { margin: 0; width: 100%; min-height: 100%; }
-        body { font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); }
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
 
-        .page { direction: rtl; min-height: 100dvh; scroll-behavior: smooth; }
+        body {
+          font-family: 'Tajawal', sans-serif;
+          background-color: #FDFBFF;
+          color: var(--text-dark);
+          overflow-x: hidden;
+        }
 
+        .page-wrapper {
+          direction: rtl;
+        }
+
+        /* --- Navbar --- */
         .navbar {
-          position: sticky;
+          position: fixed;
           top: 0;
-          z-index: 50;
-          backdrop-filter: blur(10px);
-          background: rgba(247, 248, 242, 0.85);
-          border-bottom: 1px solid #e8edf6;
-        }
-
-        .nav-inner {
-          width: min(1180px, 100%);
-          margin: 0 auto;
-          padding: 10px clamp(16px, 4vw, 64px);
+          left: 0;
+          right: 0;
+          height: 80px;
+          z-index: 1000;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          padding: 0 5%;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 14px;
         }
 
-        .nav-brand {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          text-decoration: none;
-          color: #0f4a97;
-          font-weight: 800;
-          font-size: 1.05rem;
+        .navbar.scrolled {
+          height: 70px;
+          background: var(--glass);
+          backdrop-filter: blur(15px);
+          border-bottom: 1px solid rgba(0, 63, 135, 0.05);
+          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
         }
 
         .nav-logo {
-          width: 56px;
-          height: 56px;
-          object-fit: contain;
-          border-radius: 8px;
-          background: #fff;
-          padding: 2px;
-          border: 1px solid #e6ebf5;
+          height: 45px;
+          width: auto;
+          transition: transform 0.3s ease;
+        }
+
+        .nav-logo:hover {
+          transform: scale(1.05);
         }
 
         .nav-links {
           display: flex;
+          gap: 32px;
           align-items: center;
-          gap: 14px;
-          flex-wrap: wrap;
         }
 
         .nav-link {
           text-decoration: none;
-          color: #334155;
+          color: var(--text-dark);
           font-weight: 700;
           font-size: 0.95rem;
+          transition: all 0.3s ease;
+          position: relative;
         }
 
-        .nav-btn {
-          border: none;
-          border-radius: 10px;
-          background: #eef5ff;
-          color: #0f4a97;
+        .nav-link::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          right: 0;
+          width: 0;
+          height: 2px;
+          background: var(--primary);
+          transition: width 0.3s ease;
+        }
+
+        .nav-link:hover {
+          color: var(--primary);
+        }
+
+        .nav-link:hover::after {
+          width: 100%;
+        }
+
+        .nav-auth {
+          display: flex;
+          gap: 12px;
+        }
+
+        .btn-login {
+          padding: 10px 24px;
+          border: 1px solid var(--primary);
+          color: var(--primary);
+          background: transparent;
+          border-radius: 12px;
           font-weight: 800;
-          font-family: inherit;
-          padding: 9px 14px;
           cursor: pointer;
-        }
-
-        .section {
-          min-height: 100dvh;
-          padding: clamp(28px, 4vw, 56px) clamp(16px, 4vw, 64px);
           display: flex;
           align-items: center;
-          justify-content: center;
+          gap: 8px;
+          transition: all 0.3s ease;
         }
 
-        .container { width: min(1180px, 100%); margin: 0 auto; }
+        .btn-login:hover {
+          background: var(--primary-light);
+        }
 
+        .btn-register {
+          padding: 10px 24px;
+          background: var(--primary);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          font-weight: 800;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          box-shadow: 0 8px 20px -6px rgba(0, 63, 135, 0.3);
+          transition: all 0.3s ease;
+        }
+
+        .btn-register:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 25px -8px rgba(0, 63, 135, 0.4);
+        }
+
+        /* --- Hero --- */
         .hero {
-          background:
-            radial-gradient(circle at 12% 10%, #eaf8dd 0%, transparent 34%),
-            radial-gradient(circle at 88% 88%, #e8f0ff 0%, transparent 36%),
-            #f7f8f2;
+          min-height: 100vh;
+          padding-top: 120px;
+          display: flex;
+          align-items: center;
+          position: relative;
+          background: radial-gradient(circle at 80% 20%, #F0F7FF 0%, transparent 40%),
+                      radial-gradient(circle at 10% 80%, #FFF9E6 0%, transparent 40%);
         }
 
         .hero-container {
-          min-height: calc(100dvh - 90px);
-          display: flex;
-          flex-direction: column;
+          width: 90%;
+          max-width: 1200px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: 1.1fr 0.9fr;
+          gap: 60px;
+          align-items: center;
         }
 
-        .hero-copy {
-          min-height: calc(100dvh - 220px);
+        .hero-content h1 {
+          font-size: clamp(2.5rem, 5vw, 4.5rem);
+          font-weight: 900;
+          line-height: 1.1;
+          margin-bottom: 24px;
+          color: var(--primary);
+        }
+
+        .hero-content p {
+          font-size: 1.25rem;
+          color: var(--text-muted);
+          line-height: 1.8;
+          margin-bottom: 40px;
+          max-width: 540px;
+        }
+
+        .hero-visual {
+          perspective: 1000px;
           display: flex;
-          flex-direction: column;
           justify-content: center;
+          align-items: center;
+          position: relative;
         }
 
-        .kicker { margin: 0 0 10px; color: var(--green-dark); font-size: 0.92rem; font-weight: 800; }
-        .title { margin: 0; font-size: clamp(2.3rem, 1.8rem + 2.4vw, 4rem); line-height: 1.15; font-weight: 800; }
-        .desc { margin: 14px 0 24px; color: var(--muted); font-size: clamp(1.2rem, 1.05rem + 0.7vw, 1.65rem); line-height: 1.95; max-width: 100%; }
-
-        .btn-row {
+        .three-d-card {
+          width: 400px;
+          height: 480px;
+          background: white;
+          border-radius: 40px;
+          box-shadow: var(--shadow-premium);
+          transform: rotateY(-15deg) rotateX(10deg);
+          transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+          transform-style: preserve-3d;
+          padding: 40px;
           display: flex;
           flex-direction: column;
-          align-items: flex-start;
+          gap: 24px;
+          border: 1px solid rgba(0, 63, 135, 0.05);
+        }
+
+        .three-d-card:hover {
+          transform: rotateY(0deg) rotateX(0deg) scale(1.02);
+        }
+
+        .floating-element {
+          position: absolute;
+          background: white;
+          padding: 16px;
+          border-radius: 20px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-weight: 800;
+          animation: float 4s ease-in-out infinite;
+          z-index: 10;
+        }
+
+        .float-1 { top: 10%; right: -20px; animation-delay: 0s; color: var(--accent); }
+        .float-2 { bottom: 20%; left: -40px; animation-delay: 1s; color: #FF6B6B; }
+        .float-3 { top: 50%; right: -50px; animation-delay: 2s; color: var(--primary); }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
+
+        .hero-btns {
+          display: flex;
           gap: 20px;
         }
-        .btn {
-          border: none;
-          border-radius: 14px;
-          height: 50px;
-          padding: 0 22px;
-          font-family: inherit;
-          font-size: 1rem;
-          font-weight: 800;
-          cursor: pointer;
-        }
-        .btn-main { background: linear-gradient(180deg, #72d827, var(--green)); color: #fff; box-shadow: 0 5px 0 #4da607; }
-        .btn-alt { background: #eef5ff; border: 1px solid #d8e6ff; color: var(--primary); }
 
-        .languages-strip {
-          margin-top: 22px;
-          border-top: 1px solid #dfe6f2;
-          padding-top: 18px;
-          padding-bottom: 10px;
+        /* --- Sections --- */
+        .section {
+          padding: 100px 5%;
+        }
+
+        .section-header {
           text-align: center;
+          margin-bottom: 60px;
         }
 
-        .languages-title { margin: 0 0 10px; font-size: 1.08rem; font-weight: 800; color: #0f4a97; }
-        .chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-        .chip {
-          border-radius: 14px;
-          border: 1px solid #dfe8f6;
-          background: #ffffff;
-          padding: 9px 12px;
-          color: #475467;
-          font-size: 0.95rem;
-          font-weight: 700;
-          display: inline-flex;
+        .section-header h2 {
+          font-size: 2.5rem;
+          font-weight: 900;
+          color: var(--primary);
+          margin-bottom: 16px;
+        }
+
+        .feature-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 30px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .feature-card {
+          background: white;
+          padding: 40px;
+          border-radius: 32px;
+          border: 1px solid rgba(0, 63, 135, 0.05);
+          transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .feature-card:hover {
+          transform: translateY(-10px);
+          box-shadow: var(--shadow-premium);
+          border-color: var(--primary-light);
+        }
+
+        .icon-box {
+          width: 64px;
+          height: 64px;
+          background: var(--primary-light);
+          color: var(--primary);
+          border-radius: 20px;
+          display: flex;
           align-items: center;
-          gap: 8px;
-          min-width: 140px;
           justify-content: center;
+          margin-bottom: 24px;
         }
 
-        .lang-flag {
-          width: 20px;
-          height: 20px;
-          object-fit: cover;
-          border-radius: 50%;
-          border: 1px solid #d8e2f0;
-          background: #fff;
-        }
-
-        .amazigh-icon {
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          border: 1px solid #d8e2f0;
-          background: linear-gradient(180deg, #2d9cdb 0%, #2d9cdb 33%, #f2c94c 33%, #f2c94c 66%, #6fcf97 66%, #6fcf97 100%);
-          color: #e63946;
-          font-size: 0.72rem;
+        .feature-card h3 {
+          font-size: 1.5rem;
           font-weight: 800;
-          display: inline-flex;
+          margin-bottom: 12px;
+        }
+
+        .feature-card p {
+          color: var(--text-muted);
+          line-height: 1.7;
+        }
+
+        /* --- Languages Strip --- */
+        .lang-strip {
+          background: var(--primary);
+          padding: 20px 0;
+          overflow: hidden;
+        }
+
+        .lang-track {
+          display: flex;
+          gap: 60px;
+          animation: slide 30s linear infinite;
+          width: max-content;
+        }
+
+        .lang-item {
+          color: white;
+          font-weight: 800;
+          display: flex;
           align-items: center;
-          justify-content: center;
+          gap: 12px;
+          font-size: 1.1rem;
+          opacity: 0.8;
         }
 
-        .section-title { margin: 0 0 16px; font-size: clamp(1.7rem, 1.2rem + 1vw, 2.5rem); font-weight: 800; }
-        .about { background: #fff; }
-        .about-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-        .card { background: #f9fbff; border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
-        .card h3 { margin: 0 0 8px; font-size: 1.18rem; font-weight: 800; }
-        .card p { margin: 0; color: #586273; line-height: 1.8; }
-
-        .tips {
-          background:
-            radial-gradient(circle at 85% 15%, #edf8df 0%, transparent 38%),
-            #f5f8ff;
-        }
-        .tips-wrap { display: grid; gap: 14px; }
-        .tip {
-          background: rgba(255, 255, 255, 0.78);
-          border: 1px solid rgba(255, 255, 255, 0.92);
-          backdrop-filter: blur(8px);
-          border-radius: 16px;
-          padding: 14px 16px;
-          color: #334155;
-          font-size: 1.04rem;
-          line-height: 1.75;
-        }
-        .tip strong { color: #3b8f05; }
-
-        .footer { background: var(--footer); color: #dbe7ff; min-height: 100dvh; }
-        .footer-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 20px; }
-        .footer-title { margin: 0 0 10px; font-size: 1.18rem; font-weight: 800; color: #fff; }
-        .footer-logo {
-          width: 120px; height: auto; display: block; margin-bottom: 10px;
-          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
-          border-radius: 10px; background: #fff; padding: 4px;
-        }
-        .footer-text { margin: 0; color: #b7c7e8; line-height: 1.85; }
-        .footer-link { display: block; color: #c9d7f2; text-decoration: none; margin: 8px 0; }
-        .copyright { margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(173, 194, 230, 0.2); color: #aac0e7; font-weight: 700; }
-
-        @media (max-width: 980px) {
-          .about-grid { grid-template-columns: 1fr; }
-          .footer-grid { grid-template-columns: 1fr 1fr; }
-          .chips { justify-content: center; }
+        @keyframes slide {
+          from { transform: translateX(0); }
+          to { transform: translateX(50%); }
         }
 
-        @media (max-width: 640px) {
-          .footer-grid { grid-template-columns: 1fr; }
-          .nav-inner { padding-inline: 12px; }
-          .nav-links { gap: 10px; }
-          .nav-link { font-size: 0.88rem; }
+        /* --- Footer --- */
+        .footer {
+          background: #001D3D;
+          color: white;
+          padding: 80px 5% 40px;
+        }
+
+        .footer-content {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: 1.5fr 1fr 1fr 1fr;
+          gap: 60px;
+          margin-bottom: 60px;
+        }
+
+        .footer-brand p {
+          color: #B8C5D9;
+          margin-top: 20px;
+          line-height: 1.8;
+        }
+
+        .footer-links h4 {
+          margin-bottom: 24px;
+          font-size: 1.2rem;
+        }
+
+        .footer-links a {
+          display: block;
+          color: #B8C5D9;
+          text-decoration: none;
+          margin-bottom: 12px;
+          transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+          color: var(--secondary);
+        }
+
+        .copyright {
+          text-align: center;
+          padding-top: 40px;
+          border-top: 1px solid rgba(255,255,255,0.1);
+          color: #64748B;
+          font-size: 0.9rem;
+        }
+
+        @media (max-width: 1024px) {
+          .hero-container { grid-template-columns: 1fr; text-align: center; }
+          .hero-content { display: flex; flex-direction: column; align-items: center; }
+          .hero-btns { justify-content: center; }
+          .hero-visual { margin-top: 60px; }
+          .footer-content { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 768px) {
+          .nav-links { display: none; }
+          .footer-content { grid-template-columns: 1fr; }
         }
       `}</style>
 
-      <main className="page">
-        <nav className="navbar">
-          <div className="nav-inner">
-            <a href="#hero" className="nav-brand">
-              <img src="/logo.jpeg" alt="شعار aji-t9ra" className="nav-logo" />
-              aji-t9ra
-            </a>
-            <div className="nav-links">
-              <a href="#hero" className="nav-link">
-                الرئيسية
-              </a>
-              <a href="#about" className="nav-link">
-                من نحن
-              </a>
-              <a href="#tips" className="nav-link">
-                نصائح
-              </a>
-              <a onClick={() => onAdminClick()} className="nav-link" style={{ cursor: 'pointer' }}>
-                لوحة التحكم
-              </a>
-              <button
-                className="nav-btn"
-                type="button"
-                onClick={onProfessorClick}
-              >
-                تسجيل الدخول / إنشاء حساب
-              </button>
-            </div>
+      <div className="page-wrapper">
+        <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
+          <div className="nav-links">
+            <a href="#features" className="nav-link">المميزات</a>
+            <a href="#about" className="nav-link">من نحن</a>
+            <a onClick={() => onAdminClick()} className="nav-link" style={{ cursor: 'pointer' }}>الإدارة</a>
+          </div>
+
+          <div className="nav-center">
+            <img src={logo} alt="Logo" className="nav-logo" />
+          </div>
+
+          <div className="nav-auth">
+            <button className="btn-login" onClick={onProfessorClick}>
+              <LogIn size={18} />
+              تسجيل الدخول
+            </button>
+            <button className="btn-register" onClick={onProfessorClick}>
+              <UserPlus size={18} />
+              انشاء حساب
+            </button>
           </div>
         </nav>
 
-        <section id="hero" className="section hero">
-          <div className="container hero-container">
-            <div className="hero-copy">
-              <p className="kicker">منصة تعلم لغات حديثة</p>
-              <h1 className="title">
-                تعلّم اللغات بطريقة ذكية، سريعة، ومحفّزة
-              </h1>
-              <p className="desc">
-                منصة SaaS تعليمية تجمع بين القصص التفاعلية، الصالونات الصوتية
-                المباشرة، والاختبارات الذكية بالذكاء الاصطناعي، لمساعدة الطالب
-                على بناء مهارات التحدث والفهم بشكل عملي ومستمر.
+        <section className="hero">
+          <div className="hero-container">
+            <div className="hero-content">
+              <h1>تعلّم اللغات بطريقة <span style={{ color: 'var(--secondary)' }}>ذكية</span> وممتعة</h1>
+              <p>
+                منصة أجي-تقرا (aji-t9ra) هي وجهتك المثالية لإتقان اللغات من خلال تقنيات الذكاء الاصطناعي، القصص التفاعلية، والممارسة المباشرة مع نخبة من الأساتذة.
               </p>
-              <div className="btn-row">
-                <button className="btn btn-main" type="button">
-                  ابدأ الآن
+              <div className="hero-btns">
+                <button className="btn-register" onClick={onProfessorClick} style={{ padding: '16px 40px', fontSize: '1.1rem' }}>
+                  ابدأ رحلتك مجاناً
+                  <ArrowLeft size={20} />
                 </button>
-                <button
-                  className="btn btn-alt"
-                  type="button"
-                  onClick={onProfessorClick}
-                >
-                  تسجيل الدخول / إنشاء حساب
+                <button className="btn-login" onClick={onProfessorClick} style={{ padding: '16px 40px', fontSize: '1.1rem' }}>
+                  اكتشف المزيد
                 </button>
               </div>
             </div>
 
-            <div className="languages-strip">
-              <div className="chips">
-                <span className="chip">
-                  <img
-                    className="lang-flag"
-                    src="https://flagcdn.com/w40/fr.png"
-                    alt="France"
-                  />
-                  Français
-                </span>
-                <span className="chip">
-                  <span className="amazigh-icon">ⵣ</span>
-                  Tamazight
-                </span>
-                <span className="chip">
-                  <img
-                    className="lang-flag"
-                    src="https://flagcdn.com/w40/gb.png"
-                    alt="United Kingdom"
-                  />
-                  English
-                </span>
-                <span className="chip">
-                  <img
-                    className="lang-flag"
-                    src="https://flagcdn.com/w40/de.png"
-                    alt="Germany"
-                  />
-                  Germany
-                </span>
+            <div className="hero-visual">
+              <div className="three-d-card">
+                <div className="icon-box" style={{ width: '80px', height: '80px' }}>
+                  <Sparkles size={40} />
+                </div>
+                <h2 style={{ fontSize: '2rem', fontWeight: 900 }}>ذكاء اصطناعي تفاعلي</h2>
+                <p>نستخدم أحدث تقنيات الـ AI لمساعدتك على تصحيح النطق وفهم القواعد بشكل تلقائي وفوري.</p>
+                <div style={{ marginTop: 'auto', display: 'flex', gap: '8px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#E2E8F0' }}></div>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#E2E8F0' }}></div>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#E2E8F0' }}></div>
+                </div>
+              </div>
+
+              <div className="floating-element float-1">
+                <Globe size={20} />
+                <span>+15 لغة متاحة</span>
+              </div>
+              <div className="floating-element float-2">
+                <Headphones size={20} />
+                <span>دروس صوتية</span>
+              </div>
+              <div className="floating-element float-3">
+                <Sparkles size={20} />
+                <span>تقييم فوري</span>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="about" className="section about">
-          <div className="container">
-            <h2 className="section-title">من نحن</h2>
-            <div className="about-grid">
-              <article className="card">
-                <h3>رؤيتنا</h3>
-                <p>
-                  نؤمن أن تعلم اللغات يجب أن يكون ممتعاً وواقعياً، وليس مجرد حفظ
-                  نظري.
-                </p>
-              </article>
-              <article className="card">
-                <h3>منهجنا</h3>
-                <p>
-                  نعتمد على الممارسة اليومية، التفاعل الصوتي، والمحتوى المتدرج
-                  حسب مستوى المتعلم.
-                </p>
-              </article>
-              <article className="card">
-                <h3>النتيجة</h3>
-                <p>
-                  تقدم واضح في المفردات والنطق والثقة في التحدث داخل مواقف
-                  حقيقية.
-                </p>
-              </article>
+        <div className="lang-strip">
+          <div className="lang-track">
+            {[1, 2].map((i) => (
+              <React.Fragment key={i}>
+                <div className="lang-item">Français <img src="https://flagcdn.com/w40/fr.png" width="24" alt="" /></div>
+                <div className="lang-item">English <img src="https://flagcdn.com/w40/gb.png" width="24" alt="" /></div>
+                <div className="lang-item">Tamazight <span style={{ fontSize: '1.5rem' }}>ⵣ</span></div>
+                <div className="lang-item">Español <img src="https://flagcdn.com/w40/es.png" width="24" alt="" /></div>
+                <div className="lang-item">Deutsch <img src="https://flagcdn.com/w40/de.png" width="24" alt="" /></div>
+                <div className="lang-item">العربية <img src="https://flagcdn.com/w40/ma.png" width="24" alt="" /></div>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
+        <section id="features" className="section">
+          <div className="section-header">
+            <h2>لماذا أجي-تقرا؟</h2>
+            <p style={{ color: 'var(--text-muted)' }}>نقدم لك تجربة تعليمية متكاملة تجمع بين المتعة والاحترافية</p>
+          </div>
+
+          <div className="feature-grid">
+            <div className="feature-card">
+              <div className="icon-box"><BookOpen size={30} /></div>
+              <h3>قصص تفاعلية</h3>
+              <p>تعلم المفردات من خلال سياقات قصصية مشوقة تجعلك تنسى أنك تدرس.</p>
+            </div>
+            <div className="feature-card">
+              <div className="icon-box"><MessageCircle size={30} /></div>
+              <h3>صالونات صوتية</h3>
+              <p>مارس اللغة مع أشخاص حقيقيين في غرف محادثة مباشرة بإشراف أساتذة.</p>
+            </div>
+            <div className="feature-card">
+              <div className="icon-box"><PlayCircle size={30} /></div>
+              <h3>محتوى مرئي</h3>
+              <p>مئات الفيديوهات القصيرة والدروس المسجلة بجودة عالية لتطوير مهاراتك.</p>
             </div>
           </div>
         </section>
 
-        <section id="tips" className="section tips">
-          <div className="container">
-            <h2 className="section-title">نصائح عملية للتقدم السريع</h2>
-            <div className="tips-wrap">
-              <div className="tip">
-                <strong>نصيحة 1:</strong> خصّص 15 دقيقة يومياً للتدريب الصوتي.
-              </div>
-              <div className="tip">
-                <strong>نصيحة 2:</strong> اقرأ قصة قصيرة كل يوم وسجّل الكلمات
-                الجديدة.
-              </div>
-              <div className="tip">
-                <strong>نصيحة 3:</strong> شارك في صالون صوتي مرتين أسبوعياً على
-                الأقل.
-              </div>
-              <div className="tip">
-                <strong>نصيحة 4:</strong> أعد اختبار الذكاء الاصطناعي مباشرة بعد
-                كل درس لتثبيت التعلم.
-              </div>
+        <footer className="footer">
+          <div className="footer-content">
+            <div className="footer-brand">
+              <img src={logo} alt="Logo" style={{ height: '50px' }} />
+              <p>أجي-تقرا هي منصة تعليمية مغربية رائدة تهدف إلى جعل تعلم اللغات متاحاً للجميع باستخدام أحدث التقنيات.</p>
+            </div>
+            <div className="footer-links">
+              <h4>المنصة</h4>
+              <a href="#">الدروس</a>
+              <a href="#">الأساتذة</a>
+              <a href="#">الأسعار</a>
+            </div>
+            <div className="footer-links">
+              <h4>الدعم</h4>
+              <a href="#">مركز المساعدة</a>
+              <a href="#">تواصل معنا</a>
+              <a href="#">الأسئلة الشائعة</a>
+            </div>
+            <div className="footer-links">
+              <h4>قانوني</h4>
+              <a href="#">سياسة الخصوصية</a>
+              <a href="#">الشروط والأحكام</a>
             </div>
           </div>
-        </section>
-
-        <footer id="footer" className="section footer">
-          <div className="container">
-            <div className="footer-grid">
-              <div>
-                <img
-                  className="footer-logo"
-                  src={logoCandidates[0]}
-                  data-index="0"
-                  onError={handleLogoError}
-                  alt="شعار aji-t9ra"
-                />
-                <h3 className="footer-title">Aji Lingua</h3>
-                <p className="footer-text">
-                  منصة تعليم لغات موجهة للطلبة والأساتذة، تجمع بين التكنولوجيا
-                  الحديثة والتجربة التعليمية الممتعة.
-                </p>
-              </div>
-              <div>
-                <h3 className="footer-title">الخدمات</h3>
-                <a href="#" className="footer-link">
-                  القصص التفاعلية
-                </a>
-                <a href="#" className="footer-link">
-                  الصالونات الصوتية
-                </a>
-                <a href="#" className="footer-link">
-                  الاختبارات الذكية
-                </a>
-              </div>
-              <div>
-                <h3 className="footer-title">الدعم</h3>
-                <a href="#" className="footer-link">
-                  مركز المساعدة
-                </a>
-                <a href="#" className="footer-link">
-                  الأسئلة الشائعة
-                </a>
-                <a href="#" className="footer-link">
-                  تواصل معنا
-                </a>
-              </div>
-              <div>
-                <h3 className="footer-title">القانون</h3>
-                <a href="#" className="footer-link">
-                  سياسة الخصوصية
-                </a>
-                <a href="#" className="footer-link">
-                  الشروط والأحكام
-                </a>
-                <a href="#" className="footer-link">
-                  الأمان والموثوقية
-                </a>
-              </div>
-            </div>
-            <div className="copyright">
-              © 2026 Aji Lit9ra - جميع الحقوق محفوظة
-            </div>
+          <div className="copyright">
+            © 2026 aji-t9ra - جميع الحقوق محفوظة. صنع بكل حب في المغرب 🇲🇦
           </div>
         </footer>
-      </main>
+      </div>
     </>
   );
 };
 
 export default LOADINGPAGE;
-

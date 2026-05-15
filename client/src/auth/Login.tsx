@@ -30,8 +30,10 @@ const Login = () => {
             setAlert({ message: 'تم تسجيل الدخول بنجاح! جاري تحويلك...', type: 'success' });
 
             setTimeout(() => {
-                if (!user.onboardingCompleted) {
+                if (!user.onboardingCompleted && user.Role !== 'admin') {
                     navigate('/register');
+                } else if (user.Role === 'admin') {
+                    navigate('/admin/dashboard');
                 } else if (user.Role === 'teacher') {
                     navigate('/teacher/dashboard');
                 } else if (user.Role === 'student') {

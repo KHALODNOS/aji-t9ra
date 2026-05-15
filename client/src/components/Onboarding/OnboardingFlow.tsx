@@ -11,6 +11,7 @@ import EducationExperienceStep from './steps/EducationExperienceStep';
 import SocialLinksStep from './steps/SocialLinksStep';
 import ReviewStep from './steps/ReviewStep';
 import CustomAlert from '../common/CustomAlert';
+import { useNavigate } from 'react-router-dom';
 
 // Student Steps
 import StudentBasicInfoStep from './steps/StudentBasicInfoStep';
@@ -19,6 +20,7 @@ import StudentLevelStep from './steps/StudentLevelStep';
 import StudentAvatarStep from './steps/StudentAvatarStep';
 
 const OnboardingFlow = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -97,39 +99,32 @@ const OnboardingFlow = () => {
       const { Role } = formData;
 
       if (step === 1) {
-        // Registration
         await authService.register({
           email: formData.email,
           password: formData.password,
           Role: formData.Role
         });
       } else if (step === 2) {
-        // Verify Email
         response = await authService.verifyEmail({
           email: formData.email,
           otpCode: formData.otpCode
         });
-        // Save token for subsequent protected steps
         if (response.data.token) {
           localStorage.setItem('token', response.data.token);
         }
       } else if (step === 3) {
-        // Send Phone OTP
         await authService.sendPhoneOtp({
           PhoneNumber: formData.PhoneNumber
         });
       } else if (step === 4) {
-        // Verify Phone OTP
         await authService.verifyPhoneOtp({
           phoneOtp: formData.phoneOtp
         });
       } else if (Role === 'teacher') {
-        // Teacher Steps
         if (step === 5) {
           const teacherData = new FormData();
           if (formData.photoProfile) teacherData.append('photoProfile', formData.photoProfile);
           if (formData.videoProfile) teacherData.append('videoProfile', formData.videoProfile);
-
           await authService.teacherStep1(teacherData);
         } else if (step === 6) {
           await authService.teacherStep2({
@@ -138,20 +133,18 @@ const OnboardingFlow = () => {
             location: formData.location
           });
         } else if (step === 7) {
-          // Transform fluentLanguages to [{ language, level }]
           const formattedLanguages = (formData.fluentLanguages || []).map((lang: string) => ({
             language: lang,
-            level: 'Advanced' // Default level
+            level: 'Advanced'
           }));
           await authService.teacherStep3({
             fluentLanguages: formattedLanguages
           });
         } else if (step === 8) {
-          // Transform education and experience
           const formattedEducation = (formData.education || []).map((edu: any) => ({
             degree: edu.degree,
             institution: edu.university,
-            year: edu.year // Note: Schema expects startDate/endDate, but we'll send what we have
+            year: edu.year
           }));
           const formattedExperience = (formData.experience || []).map((exp: any) => ({
             jobTitle: exp.title,
@@ -163,7 +156,6 @@ const OnboardingFlow = () => {
             experience: formattedExperience
           });
         } else if (step === 9) {
-          // Transform socialLinks to [{ platform, url }]
           const formattedSocialLinks = Object.entries(formData.socialLinks || {})
             .filter(([_, url]) => url)
             .map(([platform, url]) => ({ platform, url }));
@@ -176,12 +168,17 @@ const OnboardingFlow = () => {
             acceptanceOfTermsAndConditions: formData.acceptanceOfTermsAndConditions
           });
           setAlert({ message: 'تم إكمال عملية التسجيل بنجاح!', type: 'success' });
-          // Redirect or handle completion
+          
+          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+          localStorage.setItem('user', JSON.stringify({ ...currentUser, status: 'pending' }));
+
+          setTimeout(() => {
+            navigate('/teacher-dashboard');
+          }, 2000);
           return;
         }
       }
       else if (Role === 'student') {
-        // Student Steps
         if (step === 5) {
           await authService.studentStep1({
             username: formData.username,
@@ -189,13 +186,11 @@ const OnboardingFlow = () => {
             sexe: formData.sexe
           });
         } else if (step === 6) {
-          // Transform subjectOfLearn to array [String]
           await authService.studentStep2({
             subjectOfLearn: [formData.subjectOfLearn],
             targetLanguage: formData.targetLanguage
           });
         } else if (step === 7) {
-          // Capitalize level (beginner -> Beginner)
           const capitalizedLevel = formData.level.charAt(0).toUpperCase() + formData.level.slice(1);
           await authService.studentStep3({
             level: capitalizedLevel
@@ -207,7 +202,13 @@ const OnboardingFlow = () => {
 
           await authService.studentStep4(studentData);
           setAlert({ message: 'تم إكمال عملية التسجيل بنجاح!', type: 'success' });
-          // Redirect or handle completion
+          
+          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+          localStorage.setItem('user', JSON.stringify({ ...currentUser, status: 'active' }));
+
+          setTimeout(() => {
+            navigate('/student-dashboard');
+          }, 2000);
           return;
         }
       }
@@ -228,12 +229,10 @@ const OnboardingFlow = () => {
 
   return (
     <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4 md:p-8 dir-rtl perspective-1000 overflow-hidden" dir="rtl">
-      {/* Soft decorative elements */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#5DA296]/10 rounded-full blur-[120px] opacity-60"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#5DA296]/10 rounded-full blur-[120px] opacity-60"></div>
 
       <div className="w-full max-w-5xl z-10">
-        {/* Progress Tracker */}
         <div className="mb-12 overflow-x-auto pb-4 hide-scrollbar">
           <div className="flex justify-between items-start min-w-[800px] px-2">
             {currentSteps.map((info, i) => {
@@ -277,7 +276,6 @@ const OnboardingFlow = () => {
           </div>
         </div>
 
-        {/* Content Card */}
         <div className="bg-white min-h-[550px] flex flex-col transition-all duration-500 transform-gpu preserve-3d rounded-[2rem] border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-8 md:p-12 relative overflow-hidden">
           <div className="flex-grow">
             {alert && (

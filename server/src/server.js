@@ -3,6 +3,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./config/connectFn");
 const { generateToken } = require("./controllers/voiceRomController.js");
+const bcrypt = require("bcrypt");
 
 
 dotenv.config();
@@ -25,6 +26,8 @@ app.get('/api/agora/token', generateToken);
 
 
 connectDB();
+
+// bcrypt.hash("admin123", 10).then(console.log)
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);

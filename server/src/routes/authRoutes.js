@@ -32,10 +32,10 @@ router.post("/teacher/step5", authMiddleware, roleMiddleware("teacher"), authCon
 router.post("/teacher/step6", authMiddleware, roleMiddleware("teacher"), authController.teacherStep6);
 
 // --- Student Onboarding Steps ---
-router.post("/student/step1", authMiddleware, roleMiddleware("student , teacher"), authController.studentStep1);
-router.post("/student/step2", authMiddleware, roleMiddleware("student , teacher"), authController.studentStep2);
-router.post("/student/step3", authMiddleware, roleMiddleware("student , teacher"), authController.studentStep3);
-router.post("/student/step4", authMiddleware, roleMiddleware("student , teacher"), upload.single("avatar"), authController.studentStep4);
+router.post("/student/step1", authMiddleware, roleMiddleware("student", "teacher"), authController.studentStep1);
+router.post("/student/step2", authMiddleware, roleMiddleware("student", "teacher"), authController.studentStep2);
+router.post("/student/step3", authMiddleware, roleMiddleware("student", "teacher"), authController.studentStep3);
+router.post("/student/step4", authMiddleware, roleMiddleware("student", "teacher"), upload.single("avatar"), authController.studentStep4);
 
 module.exports = router;
 
