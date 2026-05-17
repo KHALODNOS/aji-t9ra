@@ -6,8 +6,10 @@ import {
   FileText, 
   Globe, 
   HeadphonesIcon, 
-  LogOut 
+  LogOut,
+  Bell
 } from 'lucide-react';
+import NotificationBell from '../common/NotificationBell';
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -31,11 +33,14 @@ const AdminSidebar = () => {
   return (
     <aside className="w-72 bg-white border-l border-slate-100 flex flex-col shadow-sm sticky top-0 h-screen overflow-y-auto">
       <div className="p-8">
-        <div className="flex items-center gap-3 mb-12">
-          <div className="w-10 h-10 bg-[#003F87] rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-black text-xl">أ</span>
+        <div className="flex items-center justify-between mb-12">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#003F87] rounded-xl flex items-center justify-center shadow-lg">
+              <span className="text-white font-black text-xl">أ</span>
+            </div>
+            <span className="text-2xl font-black tracking-tight text-[#003F87] font-heading">أجي تقرا</span>
           </div>
-          <span className="text-2xl font-black tracking-tight text-[#003F87] font-heading">أجي تقرا</span>
+          <NotificationBell />
         </div>
 
         <div className="mb-10 text-center">

@@ -1,304 +1,520 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
+import toast, { Toaster } from "react-hot-toast";
+import { 
+  BookOpen, 
+  Type, 
+  Image as ImageIcon, 
+  Mic, 
+  Languages, 
+  Plus, 
+  Trash2, 
+  ChevronRight, 
+  ChevronLeft,
+  CheckCircle,
+  Loader2,
+  AlertCircle
+} from "lucide-react";
 
-const StoryAuthor = ({ onBack, onHome }) => {
-  const [difficultWords, setDifficultWords] = useState(["الحضارة", "الاستكشاف", "المثابرة"]);
+const StoryAuthor = () => {
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    language: "Arabic",
+    level: "المستوى الأول",
+    content: "",
+    vocabulary: []
+  });
+
+  const [files, setFiles] = useState({
+    coverImage: null,
+    audioFile: null
+  });
+
+  const [previews, setPreviews] = useState({
+    coverImage: null
+  });
+
+  const [currentVocab, setCurrentVocab] = useState({ word: "", translation: "" });
+
+  const coverInputRef = useRef(null);
+  const audioInputRef = useRef(null);
+
+  const steps = [
+    { id: 1, title: "المعلومات الأساسية", icon: <BookOpen className="w-5 h-5" /> },
+    { id: 2, title: "نص القصة", icon: <Type className="w-5 h-5" /> },
+    { id: 3, title: "الوسائط", icon: <ImageIcon className="w-5 h-5" /> },
+    { id: 4, title: "المفردات", icon: <Languages className="w-5 h-5" /> }
+  ];
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e) => {
+    const { name, files: selectedFiles } = e.target;
+    if (selectedFiles[0]) {
+      setFiles(prev => ({ ...prev, [name]: selectedFiles[0] }));
+      
+      if (name === "coverImage") {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviews(prev => ({ ...prev, coverImage: reader.result }));
+        };
+        reader.readAsDataURL(selectedFiles[0]);
+      }
+      
+      toast.success(`تم اختيار ${name === 'coverImage' ? 'الصورة' : 'الملف الصوتي'} بنجاح`);
+    }
+  };
+
+  const addVocab = () => {
+    if (!currentVocab.word || !currentVocab.translation) {
+      toast.error("يرجى إدخال الكلمة وترجمتها");
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      vocabulary: [...prev.vocabulary, { ...currentVocab }]
+    }));
+    setCurrentVocab({ word: "", translation: "" });
+    toast.success("تمت إضافة الكلمة");
+  };
+
+  const removeVocab = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      vocabulary: prev.vocabulary.filter((_, i) => i !== index)
+    }));
+  };
+
+  const nextStep = () => {
+    if (step === 1 && !formData.title) return toast.error("يرجى إدخال عنوان القصة");
+    if (step === 2 && !formData.content) return toast.error("يرجى كتابة محتوى القصة");
+    if (step === 3 && !files.coverImage) return toast.error("يرجى اختيار صورة الغلاف");
+    
+    setStep(prev => Math.min(prev + 1, 4));
+  };
+
+  const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    const token = localStorage.getItem('token');
+
+    const submitData = new FormData();
+    submitData.append('title', formData.title);
+    submitData.append('language', formData.language);
+    submitData.append('level', formData.level);
+    submitData.append('content', formData.content);
+    submitData.append('vocabulary', JSON.stringify(formData.vocabulary));
+    
+    if (files.coverImage) submitData.append('coverImage', files.coverImage);
+    if (files.audioFile) submitData.append('audioFile', files.audioFile);
+
+    try {
+      const response = await axios.post("http://localhost:5000/api/stories", submitData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      toast.success("تم إرسال القصة بنجاح للمراجعة!");
+      // Reset form or redirect
+      setStep(1);
+      setFormData({
+        title: "",
+        language: "Arabic",
+        level: "المستوى الأول",
+        content: "",
+        vocabulary: []
+      });
+      setFiles({ coverImage: null, audioFile: null });
+      setPreviews({ coverImage: null });
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "حدث خطأ أثناء حفظ القصة");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="dashboard-container">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
-        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
-
-        :root {
-          --bg-light: #fdfdfd;
-          --sidebar-bg: #ffffff;
-          --primary-blue: #00458b;
-          --primary-yellow: #f9c851;
-          --text-main: #1d1d1d;
-          --text-muted: #757575;
-          --border-color: #f1f1f1;
-        }
-
-        * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'Tajawal', sans-serif; background: var(--bg-light); direction: rtl; }
-
-        .dashboard-container { display: flex; width: 100%; min-height: 100vh; }
-
-        /* Sidebar */
-        .sidebar {
-          width: 300px; background: var(--sidebar-bg); border-left: 1px solid var(--border-color);
-          display: flex; flex-direction: column; padding: 25px 0; flex-shrink: 0;
-        }
-        .sidebar-brand { font-size: 1.8rem; font-weight: 800; color: var(--primary-blue); text-align: center; margin-bottom: 25px; }
-
-        .user-card {
-          margin: 0 20px 25px; padding: 20px; background: #fff; border: 1px solid #f8f8f8; border-radius: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-        }
-        .user-avatar { width: 80px; height: 80px; margin: 0 auto 12px; border-radius: 50%; border: 3px solid var(--primary-blue); overflow: hidden; }
-        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .user-name { font-weight: 800; font-size: 1.1rem; margin-bottom: 4px; }
-        .user-email { color: var(--text-muted); font-size: 0.8rem; }
-
-        .nav-list { list-style: none; padding: 0 10px; margin: 0; flex-grow: 1; }
-        .nav-link {
-          display: flex; align-items: center; gap: 15px; padding: 12px 20px; text-decoration: none; color: var(--text-muted); font-weight: 700; cursor: pointer; border-radius: 12px; margin-bottom: 5px;
-        }
-        .nav-link.active { background: #eef2f7; color: var(--primary-blue); }
-        .nav-link i { font-size: 1.1rem; width: 24px; text-align: center; }
-
-        .sidebar-bottom { padding: 0 20px 20px; }
-        .add-btn {
-          width: 100%; background: var(--primary-blue); color: white; border: none; border-radius: 12px; padding: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;
-        }
-        .logout-link { display: flex; align-items: center; gap: 12px; color: #d32f2f; font-weight: 800; cursor: pointer; justify-content: center; }
-
-        /* Main Area */
-        .main-wrapper { flex-grow: 1; display: flex; flex-direction: column; }
-        
-        .topbar {
-          height: 80px; padding: 0 40px; display: flex; align-items: center; justify-content: space-between; background: transparent;
-        }
-        .top-title-row { display: flex; align-items: center; gap: 15px; font-weight: 800; color: var(--primary-blue); font-size: 1.2rem; }
-        .topbar-left { display: flex; align-items: center; gap: 20px; }
-        .icon-btn { position: relative; font-size: 1.3rem; color: var(--primary-blue); cursor: pointer; }
-
-        .author-container { padding: 0 40px 40px; }
-
-        /* Stepper */
-        .stepper-row {
-          display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 40px; margin-top: 10px;
-        }
-        .step { display: flex; align-items: center; gap: 12px; color: #999; font-weight: 700; }
-        .step.active { color: #00458b; }
-        .step-icon {
-          width: 36px; height: 36px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
-        }
-        .active .step-icon { background: #00458b; color: #fff; }
-        .step-line { width: 100px; height: 2px; background: #eee; }
-
-        .author-grid { display: grid; grid-template-columns: 320px 1fr; gap: 30px; align-items: start; }
-
-        .author-card {
-          background: #fff; border-radius: 20px; padding: 25px; border: 1px solid #f1f1f1; 
-          box-shadow: 0 4px 15px rgba(0,0,0,0.02); margin-bottom: 25px;
-        }
-        .card-title { font-size: 1rem; font-weight: 800; margin: 0 0 20px; color: #333; display: flex; align-items: center; gap: 10px; }
-        .section-label { font-size: 1.1rem; font-weight: 800; color: #00458b; margin: 0 0 20px; border-right: 4px solid #f9c851; padding-right: 12px; }
-
-        /* Form Elements */
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; font-weight: 800; font-size: 0.9rem; margin-bottom: 8px; color: #555; }
-        .form-group input, .form-group select {
-          width: 100%; padding: 12px 15px; border-radius: 12px; border: 1px solid #eee; background: #fafafa; outline: none; font-family: inherit;
-        }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-
-        /* Editor */
-        .editor-alert {
-          background: #fef9c3; color: #854d0e; padding: 12px 20px; border-radius: 10px; font-weight: 700; font-size: 0.85rem;
-          display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
-        }
-        .editor-container { position: relative; border: 1px solid #eee; border-radius: 15px; overflow: hidden; }
-        .editor-container textarea {
-          width: 100%; height: 350px; padding: 20px; border: none; outline: none; font-family: inherit; line-height: 1.8; resize: none; background: #fafafa;
-        }
-        .editor-toolbar {
-          position: absolute; bottom: 15px; left: 15px; display: flex; gap: 15px; color: #999; font-size: 1.1rem;
-        }
-
-        /* Multimedia */
-        .media-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .upload-box {
-          border: 2px dashed #eee; border-radius: 20px; padding: 30px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px;
-        }
-        .upload-icon { font-size: 2rem; color: #00458b; opacity: 0.3; }
-        .upload-box span { font-weight: 800; font-size: 0.95rem; }
-        .upload-box p { font-size: 0.8rem; color: #999; margin: 0; }
-        .btn-audio-upload {
-          background: #fff; border: 1px solid #00458b; color: #00458b; border-radius: 10px; padding: 8px 20px; font-weight: 800; cursor: pointer; margin: 5px 0;
-        }
-
-        /* Sidebar Side (Left) */
-        .words-list { display: flex; flex-direction: column; gap: 10px; }
-        .word-tag {
-          background: #fff; border: 1px solid #eee; padding: 10px 15px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between;
-          border-right: 4px solid #f9c851; font-weight: 700;
-        }
-        .word-tag i { color: #ccc; cursor: pointer; font-size: 0.8rem; }
-        .word-count { text-align: center; font-size: 0.8rem; color: #999; font-weight: 700; margin-top: 15px; }
-
-        .preview-card { background: #fff; border-radius: 24px; overflow: hidden; border: 1px solid #f1f1f1; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
-        .preview-img-box { position: relative; height: 160px; }
-        .preview-img-box img { width: 100%; height: 100%; object-fit: cover; }
-        .preview-badge { position: absolute; bottom: 10px; right: 10px; background: #f9c851; color: #1a1a1a; font-weight: 800; font-size: 0.65rem; padding: 4px 10px; border-radius: 6px; }
-        .preview-info { padding: 20px; text-align: center; }
-        .preview-info h4 { margin: 0 0 8px; font-weight: 800; color: #00458b; }
-        .preview-info p { margin: 0; font-size: 0.8rem; color: #999; line-height: 1.5; }
-
-        .points-card { background: #fff; border-radius: 16px; padding: 15px; border: 1px solid #eee; margin-bottom: 25px; }
-        .points-header { display: flex; align-items: center; gap: 15px; }
-        .trophy-icon { width: 45px; height: 45px; border-radius: 50%; background: #fef9c3; color: #ca8a04; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
-        .points-text span { display: block; font-weight: 800; font-size: 0.9rem; margin-bottom: 5px; }
-        .progress-mini { width: 100px; height: 6px; background: #eee; border-radius: 3px; }
-        .prog-fill { width: 60%; height: 100%; background: #f9c851; border-radius: 3px; }
-
-        .action-btns { display: flex; flex-direction: column; gap: 12px; }
-        .btn-save-draft { background: #00458b; color: #fff; border: none; padding: 15px; border-radius: 12px; font-weight: 800; cursor: pointer; }
-        .btn-send-review { background: #fff; color: #00458b; border: 1px solid #00458b; padding: 15px; border-radius: 12px; font-weight: 800; cursor: pointer; }
-      `}</style>
-
-      <aside className="sidebar">
-        <div className="sidebar-brand">أجي تقرا</div>
-        <div className="user-card">
-          <div className="user-avatar"><img src="https://i.pravatar.cc/150?u=teacher" alt="Teacher" /></div>
-          <div className="user-name">أستاذ خالد مؤمن</div>
-          <div className="user-email">khaled.momen@ajiteqra.com</div>
+    <div className="author-container p-4 md:p-8" dir="rtl">
+      <Toaster position="top-center" reverseOrder={false} />
+      
+      {/* Stepper */}
+      <div className="max-w-4xl mx-auto mb-12">
+        <div className="flex items-center justify-between relative">
+          <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 -translate-y-1/2 z-0"></div>
+          {steps.map((s) => (
+            <div key={s.id} className="relative z-10 flex flex-col items-center">
+              <div 
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 border-4 ${
+                  step >= s.id 
+                  ? 'bg-[#5DA296] border-[#5DA296] text-white shadow-lg shadow-[#5DA296]/30' 
+                  : 'bg-white border-gray-200 text-gray-400'
+                }`}
+              >
+                {step > s.id ? <CheckCircle className="w-6 h-6" /> : s.icon}
+              </div>
+              <span className={`mt-3 text-sm font-bold ${step >= s.id ? 'text-[#5DA296]' : 'text-gray-400'}`}>
+                {s.title}
+              </span>
+            </div>
+          ))}
         </div>
-        <ul className="nav-list">
-          <li onClick={onHome}><div className="nav-link"><i className="fa-solid fa-house"></i><span>الرئيسية</span></div></li>
-          <li><div className="nav-link active"><i className="fa-solid fa-pen-nib"></i><span>مؤلف القصص</span></div></li>
-          <li><div className="nav-link"><i className="fa-solid fa-robot"></i><span>إعدادات الـ AI</span></div></li>
-          <li><div className="nav-link"><i className="fa-solid fa-vial"></i><span>الاختبارات</span></div></li>
-          <li><div className="nav-link"><i className="fa-solid fa-microphone"></i><span>الصالونات الصوتية</span></div></li>
-          <li><div className="nav-link"><i className="fa-solid fa-users"></i><span>متابعة الطلاب</span></div></li>
-        </ul>
-        <div className="sidebar-bottom">
-          <button className="add-btn"><i className="fa-solid fa-plus"></i> إضافة محتوى</button>
-          <div className="logout-link" onClick={onBack}><i className="fa-solid fa-arrow-right-from-bracket"></i><span>تسجيل الخروج</span></div>
-        </div>
-      </aside>
+      </div>
 
-      <main className="main-wrapper">
-        <header className="topbar">
-          <div className="top-title-row">
-            <i className="fa-solid fa-book-open"></i>
-            <span>مؤلف القصص</span>
-          </div>
-          <div className="topbar-left">
-            <div className="icon-btn"><i className="fa-regular fa-envelope"></i></div>
-            <div className="icon-btn"><i className="fa-regular fa-bell"></i></div>
-            <div className="icon-btn"><i className="fa-regular fa-circle-user"></i></div>
-          </div>
-        </header>
+      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          <AnimatePresence mode="wait">
+            {step === 1 && (
+              <motion.div 
+                key="step1"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100"
+              >
+                <h3 className="text-2xl font-black text-[#5DA296] mb-6 flex items-center gap-3">
+                  <BookOpen className="w-7 h-7" />
+                  المعلومات الأساسية
+                </h3>
+                
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-700">عنوان القصة</label>
+                    <input 
+                      type="text"
+                      name="title"
+                      value={formData.title}
+                      onChange={handleInputChange}
+                      placeholder="أدخل عنواناً جذاباً..."
+                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-[#5DA296]/20 outline-none transition-all font-bold"
+                    />
+                  </div>
 
-        <div className="author-container">
-          {/* Stepper Header */}
-          <div className="stepper-row">
-            <div className="step active">
-              <div className="step-icon"><i className="fa-solid fa-check"></i></div>
-              <span>معلومات القصة</span>
-            </div>
-            <div className="step-line"></div>
-            <div className="step">
-              <div className="step-icon"><i className="fa-solid fa-pen-nib"></i></div>
-              <span>المحتوى والكلمات</span>
-            </div>
-            <div className="step-line"></div>
-            <div className="step">
-              <div className="step-icon"><i className="fa-solid fa-photo-film"></i></div>
-              <span>الوسائط والنشر</span>
-            </div>
-          </div>
-
-          <div className="author-grid">
-            {/* Left Side (Preview & Words) */}
-            <div className="side-column">
-              <div className="author-card">
-                <h4 className="card-title"><i className="fa-solid fa-book-bookmark"></i> الكلمات الصعبة المضافة</h4>
-                <div className="words-list">
-                  {difficultWords.map((word, i) => (
-                    <div className="word-tag" key={i}>
-                      <i className="fa-solid fa-xmark"></i>
-                      <span>{word}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-gray-700">اللغة</label>
+                      <select 
+                        name="language"
+                        value={formData.language}
+                        onChange={handleInputChange}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-[#5DA296]/20 outline-none font-bold"
+                      >
+                        <option value="Arabic">العربية</option>
+                        <option value="French">الفرنسية</option>
+                        <option value="English">الإنجليزية</option>
+                        <option value="Tifinagh">الأمازيغية (تيفيناغ)</option>
+                      </select>
                     </div>
-                  ))}
-                </div>
-                <div className="word-count">إجمالي الكلمات: {difficultWords.length} كلمات</div>
-              </div>
-
-              <div className="preview-card">
-                <div className="preview-img-box">
-                  <img src="https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=600" alt="Preview" />
-                  <div className="preview-badge">PREVIEW</div>
-                </div>
-                <div className="preview-info">
-                  <h4>معاينة القصة</h4>
-                  <p>ستظهر قصتك بهذا الشكل للطلاب بعد اعتمادها من قبل المشرفين.</p>
-                </div>
-              </div>
-
-              <div className="points-card">
-                <div className="points-header">
-                  <div className="trophy-icon"><i className="fa-solid fa-trophy"></i></div>
-                  <div className="points-text">
-                    <span>نقاط الإبداع</span>
-                    <div className="progress-mini"><div className="prog-fill"></div></div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-gray-700">المستوى التعليمي</label>
+                      <select 
+                        name="level"
+                        value={formData.level}
+                        onChange={handleInputChange}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-[#5DA296]/20 outline-none font-bold"
+                      >
+                        <option>المستوى الأول</option>
+                        <option>المستوى الثاني</option>
+                        <option>المستوى الثالث</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
+            )}
 
-              <div className="action-btns">
-                <button className="btn-save-draft">حفظ المسودة</button>
-                <button className="btn-send-review">إرسال للمراجعة</button>
+            {step === 2 && (
+              <motion.div 
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100"
+              >
+                <h3 className="text-2xl font-black text-[#5DA296] mb-6 flex items-center gap-3">
+                  <Type className="w-7 h-7" />
+                  محتوى القصة
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="bg-amber-50 text-amber-800 p-4 rounded-2xl flex items-start gap-3 text-sm font-bold border border-amber-100">
+                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                    <p>اكتب القصة بوضوح. يمكنك استخدام حروف التيفيناغ إذا اخترت اللغة الأمازيغية.</p>
+                  </div>
+                  <textarea 
+                    name="content"
+                    value={formData.content}
+                    onChange={handleInputChange}
+                    placeholder="ابدأ بكتابة قصتك هنا..."
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-6 min-h-[400px] focus:ring-2 focus:ring-[#5DA296]/20 outline-none transition-all font-bold leading-relaxed resize-none"
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {step === 3 && (
+              <motion.div 
+                key="step3"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100"
+              >
+                <h3 className="text-2xl font-black text-[#5DA296] mb-6 flex items-center gap-3">
+                  <ImageIcon className="w-7 h-7" />
+                  الوسائط المتعددة
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Image Upload */}
+                  <div className="space-y-4">
+                    <label className="text-sm font-bold text-gray-700">صورة الغلاف (إلزامي)</label>
+                    <div 
+                      onClick={() => coverInputRef.current.click()}
+                      className="aspect-[4/3] border-4 border-dashed border-gray-100 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-gray-50 transition-all overflow-hidden relative group"
+                    >
+                      {previews.coverImage ? (
+                        <>
+                          <img src={previews.coverImage} className="w-full h-full object-cover" alt="Cover" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold">
+                            تغيير الصورة
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-16 h-16 bg-[#5DA296]/10 rounded-2xl flex items-center justify-center text-[#5DA296]">
+                            <Plus className="w-8 h-8" />
+                          </div>
+                          <span className="text-gray-400 font-bold">رفع صورة الغلاف</span>
+                        </>
+                      )}
+                    </div>
+                    <input 
+                      type="file" 
+                      ref={coverInputRef} 
+                      className="hidden" 
+                      accept="image/*"
+                      name="coverImage"
+                      onChange={handleFileChange}
+                    />
+                  </div>
+
+                  {/* Audio Upload */}
+                  <div className="space-y-4">
+                    <label className="text-sm font-bold text-gray-700">الملف الصوتي (اختياري)</label>
+                    <div 
+                      onClick={() => audioInputRef.current.click()}
+                      className="aspect-[4/3] border-4 border-dashed border-gray-100 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-gray-50 transition-all overflow-hidden"
+                    >
+                      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${files.audioFile ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                        {files.audioFile ? <CheckCircle className="w-8 h-8" /> : <Mic className="w-8 h-8" />}
+                      </div>
+                      <span className={`${files.audioFile ? 'text-green-600' : 'text-gray-400'} font-bold`}>
+                        {files.audioFile ? files.audioFile.name : 'رفع ملف MP3'}
+                      </span>
+                    </div>
+                    <input 
+                      type="file" 
+                      ref={audioInputRef} 
+                      className="hidden" 
+                      accept="audio/*"
+                      name="audioFile"
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 4 && (
+              <motion.div 
+                key="step4"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100"
+              >
+                <h3 className="text-2xl font-black text-[#5DA296] mb-6 flex items-center gap-3">
+                  <Languages className="w-7 h-7" />
+                  الكلمات الصعبة والترجمة
+                </h3>
+                
+                <div className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-gray-700">الكلمة باللغة الأصلية</label>
+                      <input 
+                        type="text"
+                        value={currentVocab.word}
+                        onChange={(e) => setCurrentVocab({...currentVocab, word: e.target.value})}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-[#5DA296]/20 outline-none font-bold"
+                        placeholder="مثال: الحضارة"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-gray-700">الترجمة بالعربية</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text"
+                          value={currentVocab.translation}
+                          onChange={(e) => setCurrentVocab({...currentVocab, translation: e.target.value})}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-[#5DA296]/20 outline-none font-bold"
+                          placeholder="الترجمة..."
+                        />
+                        <button 
+                          onClick={addVocab}
+                          className="bg-[#5DA296] text-white w-14 rounded-2xl flex items-center justify-center hover:bg-[#4a857b] transition-all shadow-lg shadow-[#5DA296]/20"
+                        >
+                          <Plus className="w-6 h-6" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-bold text-gray-700">قائمة الكلمات ({formData.vocabulary.length})</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {formData.vocabulary.map((v, i) => (
+                        <div key={i} className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100 group">
+                          <div>
+                            <span className="font-black text-[#5DA296] ml-2">{v.word}</span>
+                            <span className="text-gray-400">←</span>
+                            <span className="font-bold mr-2 text-gray-700">{v.translation}</span>
+                          </div>
+                          <button 
+                            onClick={() => removeVocab(i)}
+                            className="text-gray-300 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ))}
+                      {formData.vocabulary.length === 0 && (
+                        <div className="col-span-full py-12 text-center text-gray-400 font-bold border-2 border-dashed border-gray-100 rounded-3xl">
+                          لا توجد كلمات مضافة بعد
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Navigation Buttons */}
+          <div className="flex items-center justify-between pt-6">
+            <button 
+              onClick={prevStep}
+              disabled={step === 1 || loading}
+              className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-bold transition-all ${
+                step === 1 
+                ? 'opacity-0 pointer-events-none' 
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <ChevronRight className="w-5 h-5" />
+              السابق
+            </button>
+
+            {step < 4 ? (
+              <button 
+                onClick={nextStep}
+                className="flex items-center gap-2 px-8 py-4 bg-[#5DA296] text-white rounded-2xl font-bold hover:bg-[#4a857b] transition-all shadow-lg shadow-[#5DA296]/20"
+              >
+                التالي
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            ) : (
+              <button 
+                onClick={handleSubmit}
+                disabled={loading}
+                className="flex items-center gap-2 px-12 py-4 bg-[#5DA296] text-white rounded-2xl font-bold hover:bg-[#4a857b] transition-all shadow-xl shadow-[#5DA296]/30 disabled:opacity-70"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    جاري الإرسال...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5" />
+                    إرسال القصة للمراجعة
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Sidebar Preview */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100 sticky top-8">
+            <div className="relative aspect-[4/3]">
+              <img 
+                src={previews.coverImage || "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=800"} 
+                className="w-full h-full object-cover" 
+                alt="Story Preview" 
+              />
+              <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-xs font-black text-[#5DA296] shadow-sm">
+                {formData.level}
               </div>
             </div>
-
-            {/* Middle Section (Form) */}
-            <div className="main-form-column">
-              <div className="author-card">
-                <h4 className="section-label">معلومات القصة</h4>
-                <div className="form-group">
-                  <label>عنوان القصة</label>
-                  <input type="text" placeholder="أدخل عنواناً جذاباً للقصة..." />
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>المستوى التعليمي</label>
-                    <select><option>المستوى الأول</option></select>
-                  </div>
-                  <div className="form-group">
-                    <label>لغة القصة</label>
-                    <select><option>العربية</option></select>
-                  </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <h4 className="text-xl font-black text-gray-900 mb-1">
+                  {formData.title || "عنوان القصة يظهر هنا"}
+                </h4>
+                <div className="flex items-center gap-2 text-sm text-[#5DA296] font-bold">
+                  <Languages className="w-4 h-4" />
+                  {formData.language}
                 </div>
               </div>
 
-              <div className="author-card">
-                <h4 className="section-label">محرر المحتوى</h4>
-                <div className="editor-alert">
-                  <i className="fa-solid fa-lightbulb"></i>
-                  <span>حدد كلمة لتصنيفها ككلمة صعبة</span>
-                </div>
-                <div className="editor-container">
-                  <textarea placeholder="اكتب قصتك هنا... يدعم النظام حروف التيفيناغ..."></textarea>
-                  <div className="editor-toolbar">
-                    <i className="fa-solid fa-list-ul"></i>
-                    <i className="fa-solid fa-italic"></i>
-                    <i className="fa-solid fa-bold"></i>
-                  </div>
-                </div>
+              <div className="pt-4 border-t border-gray-50">
+                <p className="text-gray-500 text-sm font-medium line-clamp-3 leading-relaxed">
+                  {formData.content || "محتوى القصة سيظهر هنا للمراجعة قبل النشر..."}
+                </p>
               </div>
 
-              <div className="author-card">
-                <h4 className="section-label">الوسائط المتعددة</h4>
-                <div className="media-row">
-                  <div className="upload-box cover-upload">
-                    <div className="upload-icon"><i className="fa-regular fa-image"></i></div>
-                    <span>اسحب صورة الغلاف هنا</span>
-                    <p>أو اضغط لاختيار ملف (PNG, JPG)</p>
+              <div className="flex items-center justify-between pt-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-[#5DA296]/10 flex items-center justify-center text-[#5DA296]">
+                    <Languages className="w-4 h-4" />
                   </div>
-                  <div className="upload-box audio-upload">
-                    <div className="upload-icon"><i className="fa-solid fa-microphone"></i></div>
-                    <span>التسجيل الصوتي</span>
-                    <button className="btn-audio-upload"><i className="fa-solid fa-upload"></i> رفع ملف صوتي</button>
-                    <p>تنسيقات مدعومة: MP3, WAV</p>
-                  </div>
+                  <span className="text-xs font-bold text-gray-500">{formData.vocabulary.length} كلمات صعبة</span>
                 </div>
+                {files.audioFile && (
+                  <div className="flex items-center gap-2 text-[#5DA296]">
+                    <Mic className="w-4 h-4" />
+                    <span className="text-xs font-bold">ملف صوتي مرفق</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
+
+          <div className="bg-[#5DA296]/5 p-6 rounded-3xl border border-[#5DA296]/10">
+            <h5 className="font-bold text-[#5DA296] mb-3 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" />
+              ملاحظة للأستاذ
+            </h5>
+            <p className="text-sm text-gray-600 font-medium leading-relaxed">
+              سيتم مراجعة القصة من قبل المشرفين للتأكد من جودة المحتوى واللغة قبل أن تظهر لجميع الطلاب في المنصة.
+            </p>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

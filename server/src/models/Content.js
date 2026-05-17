@@ -1,5 +1,29 @@
 const mongoose = require("mongoose");
 
+const questionSchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      enum: ["choice", "translate", "fill_blanks", "correct_form"],
+      required: true,
+    },
+    text: {
+      type: String,
+      required: true,
+    },
+    options: [
+      {
+        type: String,
+      },
+    ],
+    correctAnswer: {
+      type: String,
+      required: true,
+    },
+  },
+  { _id: false }
+);
+
 const contentSchema = new mongoose.Schema(
   {
     title: {
@@ -24,7 +48,7 @@ const contentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected", "draft"],
       default: "pending",
     },
     thumbnail: {
@@ -39,6 +63,20 @@ const contentSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    storyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Story",
+      required: false,
+    },
+    level: {
+      type: String,
+      required: false,
+    },
+    xpReward: {
+      type: Number,
+      default: 150,
+    },
+    questions: [questionSchema],
     createdAt: {
       type: Date,
       default: Date.now,

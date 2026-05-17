@@ -16,14 +16,14 @@ function App() {
     <div className="App">
       <Routes>
         {/* Landing Page */}
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
-            <LOADINGPAGE 
-              onProfessorClick={() => navigate('/register')} 
-              onAdminClick={() => navigate('/login')} 
+            <LOADINGPAGE
+              onProfessorClick={() => navigate('/register')}
+              onAdminClick={() => navigate('/login')}
             />
-          } 
+          }
         />
 
         {/* Auth Routes */}
@@ -31,49 +31,49 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         {/* Teacher Routes */}
-        <Route 
-          path="/teacher/dashboard" 
+        <Route
+          path="/teacher/dashboard"
           element={
             <ProtectedRoute allowedRoles={['teacher']}>
               <TeacherDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Student Routes */}
-        <Route 
-          path="/student/dashboard" 
+        <Route
+          path="/student/dashboard"
           element={
             <ProtectedRoute allowedRoles={['student']}>
               <StudentDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Admin Routes */}
-        <Route 
-          path="/admin/dashboard" 
+        <Route
+          path="/admin/dashboard"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/admin/users" 
+        <Route
+          path="/admin/users"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <UserManagement />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/admin/content-review" 
+        <Route
+          path="/admin/content-review"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <ContentReview />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Catch-all redirect to landing */}
