@@ -29,7 +29,12 @@ const TeacherSidebar = ({
           <span className="brand-name">أجي تقرا</span>
         </div>
 
-        <div className="teacher-user-card">
+        <div 
+          className={`teacher-user-card ${activePage === 'profile' ? 'active-card' : ''}`}
+          onClick={() => onPageChange('profile')}
+          style={{ cursor: 'pointer' }}
+          title="الملف الشخصي"
+        >
           <div className="avatar-container-3d">
             <img src={teacherAvatar} alt={teacherName} />
           </div>

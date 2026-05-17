@@ -83,9 +83,12 @@
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.teacher-user-card:hover {
+.teacher-user-card:hover,
+.teacher-user-card.active-card {
   transform: translateY(-5px);
   box-shadow: var(--teacher-3d-shadow);
+  background: white;
+  border-color: var(--teacher-primary);
 }
 
 .avatar-container-3d {
@@ -255,11 +258,17 @@
   position: relative;
 }
 
-.action-btn-3d:hover {
+.action-btn-3d:hover,
+.action-btn-3d.active {
   background: #f8fafc;
   transform: translateY(-2px);
   box-shadow: var(--teacher-card-shadow);
   color: var(--teacher-primary);
+}
+
+.action-btn-3d.active {
+  border-color: var(--teacher-primary);
+  background: var(--teacher-primary-light);
 }
 
 .notification-dot {

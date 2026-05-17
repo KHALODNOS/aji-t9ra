@@ -23,6 +23,7 @@ app.use("/api/stories", require("./routes/storyRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/videos", require("./routes/videoRoutes"));
 app.use("/api/exams", require("./routes/examRoutes"));
+app.use("/api/user", require("./routes/user"));
 
 app.get('/api/agora/token', generateToken);
 

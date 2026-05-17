@@ -25,7 +25,11 @@ const TeacherLayout = ({ children, activePage, onPageChange, onLogout }) => {
               <span className="notification-dot"></span>
             </div>
             <NotificationBell />
-            <div className="action-btn-3d">
+            <div 
+              className={`action-btn-3d ${activePage === 'profile' ? 'active' : ''}`}
+              onClick={() => onPageChange('profile')}
+              title="الملف الشخصي"
+            >
               <i className="fa-regular fa-circle-user"></i>
             </div>
           </div>
