@@ -3,7 +3,6 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const http = require("http");
 const connectDB = require("./config/connectFn");
-const { generateToken } = require("./controllers/voiceRomController.js");
 const { initSocket } = require("./utils/socket");
 
 dotenv.config();
@@ -24,8 +23,7 @@ app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/videos", require("./routes/videoRoutes"));
 app.use("/api/exams", require("./routes/examRoutes"));
 app.use("/api/user", require("./routes/user"));
-
-app.get('/api/agora/token', generateToken);
+app.use("/api/voice-rooms", require("./routes/angora"));
 
 connectDB();
 

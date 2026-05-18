@@ -19,6 +19,17 @@ const initSocket = (server) => {
             console.log(`User ${userId} joined with socket ${socket.id}`);
         });
 
+        // Voice Room Sockets
+        socket.on("voice-room:join", ({ roomId, userId, username }) => {
+            socket.join(`room:${roomId}`);
+            console.log(`Socket ${socket.id} (User: ${userId}, Name: ${username}) joined socket room: room:${roomId}`);
+        });
+
+        socket.on("voice-room:leave", ({ roomId, userId }) => {
+            socket.leave(`room:${roomId}`);
+            console.log(`Socket ${socket.id} (User: ${userId}) left socket room: room:${roomId}`);
+        });
+
         socket.on("disconnect", () => {
             // Find and remove the user from the map
             for (let [userId, socketId] of userSockets.entries()) {
