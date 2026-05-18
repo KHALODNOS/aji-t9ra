@@ -2,6 +2,7 @@ const Story = require('../models/Story');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const { broadcastToAdmins } = require('../utils/socket');
+const { processAndSaveStoryChunks } = require('../services/aiService');
 
 exports.createStory = async (req, res) => {
     try {
@@ -36,6 +37,13 @@ exports.createStory = async (req, res) => {
         });
 
         await newStory.save();
+
+        // Automatically split story into semantic chunks & generate embeddings
+        try {
+            await processAndSaveStoryChunks(newStory._id, content);
+        } catch (aiErr) {
+            console.error("AI chunking failed on story creation:", aiErr);
+        }
 
         // Create notification for admins
         const notification = new Notification({

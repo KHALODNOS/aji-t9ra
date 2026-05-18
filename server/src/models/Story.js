@@ -44,6 +44,13 @@ const storySchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
+    personality: {
+      name: { type: String, default: "حكيم القرية" },
+      tone: { type: String, default: "ودود (Friendly)" },
+      difficulty: { type: Number, default: 60 },
+      systemPrompt: { type: String, default: "تحدث كأنك شخصية من القصة. ركز على استخدام الكلمات الصعبة التي حددتها أنا. ولا تعط الإجابة مباشرة." },
+      xp: { type: Number, default: 50 }
+    },
   },
   { timestamps: true }
 );

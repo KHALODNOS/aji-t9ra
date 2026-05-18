@@ -19,6 +19,7 @@ const adminRoutes = require("./routes/adminRoutes");
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/stories", require("./routes/storyRoutes"));
+app.use("/api/ai", require("./routes/aiRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/videos", require("./routes/videoRoutes"));
 app.use("/api/exams", require("./routes/examRoutes"));

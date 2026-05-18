@@ -8,6 +8,7 @@
     "lint": "eslint src --ext .js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "agora-access-token": "^2.0.4",
     "agora-token": "^2.0.3",
     "bcrypt": "^6.0.0",
