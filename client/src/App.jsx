@@ -22,7 +22,7 @@ function App() {
   
   return (
     <Leaderboard />
-    // <GeneralChat />
+    // <GeneralChat /> 
     // <StudentProfile />
     // <Achievements />
     // <AudioSalonsStudent />
