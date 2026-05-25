@@ -23,6 +23,8 @@ app.use("/api/ai", require("./routes/aiRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/videos", require("./routes/videoRoutes"));
 app.use("/api/exams", require("./routes/examRoutes"));
+app.use("/api/student/journey", require("./routes/studentJourneyRoutes"));
+app.use("/api/teacher", require("./routes/teacherRoutes"));
 app.use("/api/user", require("./routes/user"));
 app.use("/api/voice-rooms", require("./routes/angora"));
 

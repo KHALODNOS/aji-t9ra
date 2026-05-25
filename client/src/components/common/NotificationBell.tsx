@@ -4,12 +4,14 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { useSocket } from '../../context/SocketContext';
 
 const NotificationBell = () => {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const { socket } = useSocket();
 
     const fetchNotifications = async () => {
         try {
@@ -30,6 +32,20 @@ const NotificationBell = () => {
         // Polling as a fallback or if socket isn't enough, but usually socket will push
         // For now, let's just rely on initial fetch and we'll add socket listener here too
     }, []);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleNotification = (notification: any) => {
+            setNotifications((current) => [notification, ...current.filter((item) => item._id !== notification._id)].slice(0, 20));
+            setUnreadCount((count) => count + 1);
+        };
+
+        socket.on('notification', handleNotification);
+        return () => {
+            socket.off('notification', handleNotification);
+        };
+    }, [socket]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

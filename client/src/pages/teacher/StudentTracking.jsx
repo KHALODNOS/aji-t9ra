@@ -1,139 +1,468 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import api from "../../services/api";
+
+const FALLBACK_AVATAR = "avatar.png";
+
+const getMediaUrl = (path) => {
+  if (!path) return `http://localhost:5000/${FALLBACK_AVATAR}`;
+  if (path.startsWith("http")) return path;
+  return `http://localhost:5000/${path.replace(/\\/g, "/")}`;
+};
+
+const levelLabels = {
+  Beginner: "مبتدئ",
+  Intermediate: "متوسط",
+  Advanced: "متقدم",
+};
 
 const StudentTracking = () => {
-  const students = [
-    { name: "ياسين المنصوري", level: "المستوى الرابع", activity: "قراءة قصة: رحلة ابن بطوطة", score: "9/10", xp: "450 XP", avatar: "https://i.pravatar.cc/150?u=yassin" },
-    { name: "ليلى الفاسي", level: "المستوى الثالث", activity: "اختبار: قواعد اللغة الأساسية", score: "7/10", xp: "320 XP", avatar: "https://i.pravatar.cc/150?u=leila" },
-    { name: "عمر بناني", level: "المستوى الخامس", activity: "قراءة قصة: الأسد والفأر", score: "10/10", xp: "580 XP", avatar: "https://i.pravatar.cc/150?u=omar" }
-  ];
+  const [leaderboard, setLeaderboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [languageFilter, setLanguageFilter] = useState("all");
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await api.get("/teacher/leaderboard");
+        setLeaderboard(response.data);
+      } catch (err) {
+        console.error("Error loading teacher leaderboard:", err);
+        setError(err.response?.data?.message || "تعذر تحميل لوحة الطلاب.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, []);
+
+  const languages = useMemo(() => {
+    const values = new Set((leaderboard?.students || []).map((student) => student.targetLanguage).filter(Boolean));
+    return ["all", ...values];
+  }, [leaderboard]);
+
+  const filteredStudents = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return (leaderboard?.students || []).filter((student) => {
+      const matchesLanguage = languageFilter === "all" || student.targetLanguage === languageFilter;
+      const matchesSearch = !q ||
+        [student.name, student.targetLanguage, student.level]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(q));
+
+      return matchesLanguage && matchesSearch;
+    });
+  }, [leaderboard, languageFilter, searchText]);
+
+  if (loading) {
+    return (
+      <div className="teacher-board-state" dir="rtl">
+        <i className="fa-solid fa-circle-notch fa-spin"></i>
+        <span>جاري تحميل لوحة الطلاب الحقيقية...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="teacher-board-state error" dir="rtl">
+        <i className="fa-solid fa-triangle-exclamation"></i>
+        <span>{error}</span>
+      </div>
+    );
+  }
+
+  const stats = leaderboard?.stats || {};
+  const topThree = leaderboard?.topThree || [];
 
   return (
-    <div className="content-area">
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <div className="page-title">
-          <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--teacher-primary)' }}>متابعة الطلاب</h1>
-          <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 700, marginTop: '5px' }}>آخر تحديث: منذ دقيقتين</div>
+    <div className="content-area" dir="rtl">
+      <style>{`
+        .teacher-board-state {
+          min-height: 420px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          color: var(--teacher-primary);
+          font-weight: 900;
+        }
+
+        .teacher-board-state.error {
+          color: #b91c1c;
+        }
+
+        .teacher-board-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: end;
+          gap: 20px;
+          margin-bottom: 28px;
+        }
+
+        .teacher-board-title {
+          margin: 0;
+          font-size: 1.85rem;
+          font-weight: 900;
+          color: var(--teacher-primary);
+        }
+
+        .teacher-board-subtitle {
+          margin: 7px 0 0;
+          color: #64748b;
+          font-size: 0.92rem;
+          font-weight: 700;
+        }
+
+        .teacher-board-actions {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .teacher-board-search {
+          position: relative;
+          width: min(330px, 100%);
+        }
+
+        .teacher-board-search i {
+          position: absolute;
+          left: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #94a3b8;
+        }
+
+        .teacher-board-search input,
+        .teacher-board-select {
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+          border-radius: 14px;
+          padding: 11px 14px;
+          font-family: inherit;
+          font-weight: 800;
+          outline: none;
+        }
+
+        .teacher-board-search input {
+          width: 100%;
+          padding-left: 40px;
+        }
+
+        .teacher-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 16px;
+          margin-bottom: 28px;
+        }
+
+        .teacher-stat-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 20px;
+          padding: 20px;
+          box-shadow: var(--teacher-card-shadow);
+        }
+
+        .teacher-stat-label {
+          display: block;
+          color: #64748b;
+          font-size: 0.78rem;
+          font-weight: 900;
+          margin-bottom: 8px;
+        }
+
+        .teacher-stat-value {
+          color: var(--teacher-primary);
+          font-size: 1.45rem;
+          font-weight: 900;
+        }
+
+        .teacher-top-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 18px;
+          margin-bottom: 28px;
+        }
+
+        .teacher-top-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 22px;
+          padding: 20px;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          box-shadow: var(--teacher-card-shadow);
+        }
+
+        .teacher-top-rank {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
+          background: #fef3c7;
+          color: #b45309;
+          font-weight: 900;
+          flex-shrink: 0;
+        }
+
+        .teacher-avatar {
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          overflow: hidden;
+          border: 2px solid #e2e8f0;
+          flex-shrink: 0;
+        }
+
+        .teacher-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .teacher-student-name {
+          display: block;
+          color: var(--teacher-primary);
+          font-weight: 900;
+        }
+
+        .teacher-student-meta {
+          display: block;
+          color: #64748b;
+          font-size: 0.76rem;
+          font-weight: 800;
+          margin-top: 4px;
+        }
+
+        .teacher-table-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 24px;
+          padding: 24px;
+          box-shadow: var(--teacher-card-shadow);
+          overflow-x: auto;
+        }
+
+        .teacher-students-table {
+          width: 100%;
+          border-collapse: collapse;
+          text-align: right;
+          min-width: 860px;
+        }
+
+        .teacher-students-table th {
+          padding: 14px 12px;
+          color: #94a3b8;
+          font-size: 0.78rem;
+          font-weight: 900;
+          border-bottom: 2px solid #f1f5f9;
+        }
+
+        .teacher-students-table td {
+          padding: 16px 12px;
+          border-bottom: 1px solid #f8fafc;
+          color: #334155;
+          font-weight: 800;
+        }
+
+        .student-cell {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .rank-pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 42px;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: #f1f5f9;
+          color: #475569;
+          font-weight: 900;
+        }
+
+        .xp-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 12px;
+          border-radius: 999px;
+          background: #fffbeb;
+          color: #b45309;
+          font-weight: 900;
+        }
+
+        .score-bar {
+          width: 92px;
+          height: 7px;
+          border-radius: 999px;
+          background: #f1f5f9;
+          overflow: hidden;
+          margin-top: 7px;
+        }
+
+        .score-bar-fill {
+          height: 100%;
+          background: #f9c851;
+        }
+
+        .empty-board {
+          border: 1px dashed #cbd5e1;
+          border-radius: 18px;
+          padding: 28px;
+          text-align: center;
+          color: #64748b;
+          font-weight: 900;
+        }
+
+        @media (max-width: 980px) {
+          .teacher-stats-grid,
+          .teacher-top-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .teacher-board-header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+        }
+
+        @media (max-width: 680px) {
+          .teacher-stats-grid,
+          .teacher-top-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
+      <header className="teacher-board-header">
+        <div>
+          <h1 className="teacher-board-title">لوحة الطلاب</h1>
+          <p className="teacher-board-subtitle">بيانات حقيقية من حسابات الطلاب ونقاط XP المحفوظة في تقدمهم.</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <span style={{ fontWeight: 800, color: 'var(--teacher-primary)', marginLeft: '10px' }}>فلترة اللغة:</span>
-          <button className="btn-3d-secondary" style={{ padding: '8px 18px', background: 'var(--teacher-primary)', color: '#fff' }}>الكل</button>
-          <button className="btn-3d-secondary" style={{ padding: '8px 18px' }}>الأمازيغية</button>
-          <button className="btn-3d-secondary" style={{ padding: '8px 18px' }}>الإنجليزية</button>
-          <button className="btn-3d-secondary" style={{ padding: '8px 18px' }}>الفرنسية</button>
+        <div className="teacher-board-actions">
+          <div className="teacher-board-search">
+            <i className="fa-solid fa-magnifying-glass"></i>
+            <input
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              placeholder="ابحث عن طالب..."
+            />
+          </div>
+          <select
+            className="teacher-board-select"
+            value={languageFilter}
+            onChange={(event) => setLanguageFilter(event.target.value)}
+          >
+            {languages.map((language) => (
+              <option value={language} key={language}>
+                {language === "all" ? "كل اللغات" : language}
+              </option>
+            ))}
+          </select>
         </div>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '25px', marginBottom: '40px' }}>
-        <div className="card-3d" style={{ padding: '25px', textAlign: 'center' }}>
-          <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#64748b', marginBottom: '15px', display: 'block' }}>معدل إكمال المحتوى</span>
-          <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--teacher-primary)', marginBottom: '5px', display: 'block' }}>72%</span>
-          <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '10px', marginTop: '15px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', background: '#f9c851', width: '72%' }}></div>
-          </div>
+      <section className="teacher-stats-grid">
+        <div className="teacher-stat-card">
+          <span className="teacher-stat-label">إجمالي الطلاب</span>
+          <span className="teacher-stat-value">{stats.totalStudents || 0}</span>
         </div>
-        <div className="card-3d" style={{ padding: '25px', textAlign: 'center' }}>
-          <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#64748b', marginBottom: '15px', display: 'block' }}>أكثر القصص قراءة</span>
-          <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--teacher-primary)', marginBottom: '5px', display: 'block' }}>أسرار الغابة</span>
-          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#64748b' }}><i className="fa-solid fa-users"></i> 432 طالب هذا الأسبوع</span>
+        <div className="teacher-stat-card">
+          <span className="teacher-stat-label">طلاب نشطون</span>
+          <span className="teacher-stat-value">{stats.activeStudents || 0}</span>
         </div>
-        <div className="card-3d" style={{ padding: '25px', textAlign: 'center' }}>
-          <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#64748b', marginBottom: '15px', display: 'block' }}>متوسط درجات الاختبارات</span>
-          <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--teacher-primary)', marginBottom: '5px', display: 'block' }}>85%</span>
-          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#10b981' }}><i className="fa-solid fa-arrow-up"></i> +2%</span>
+        <div className="teacher-stat-card">
+          <span className="teacher-stat-label">مجموع XP</span>
+          <span className="teacher-stat-value">{(stats.totalXp || 0).toLocaleString("en-US")}</span>
         </div>
-      </div>
-
-      <section className="card-3d" style={{ padding: '35px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-          <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--teacher-primary)' }}>جدول متابعة الطلاب</h3>
-          <button style={{ color: 'var(--teacher-primary)', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none' }}>
-            <i className="fa-solid fa-file-export"></i> تصدير التقرير
-          </button>
+        <div className="teacher-stat-card">
+          <span className="teacher-stat-label">متوسط الاختبارات</span>
+          <span className="teacher-stat-value">{stats.averageQuizScore || 0}%</span>
         </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
-          <thead>
-            <tr>
-              <th style={{ padding: '15px', fontSize: '0.85rem', color: '#94a3b8', borderBottom: '2px solid #f8fafc', fontWeight: 800 }}>الطالب</th>
-              <th style={{ padding: '15px', fontSize: '0.85rem', color: '#94a3b8', borderBottom: '2px solid #f8fafc', fontWeight: 800 }}>آخر نشاط</th>
-              <th style={{ padding: '15px', fontSize: '0.85rem', color: '#94a3b8', borderBottom: '2px solid #f8fafc', fontWeight: 800 }}>نتائج الاختبارات</th>
-              <th style={{ padding: '15px', fontSize: '0.85rem', color: '#94a3b8', borderBottom: '2px solid #f8fafc', fontWeight: 800 }}>نقاط XP</th>
-              <th style={{ padding: '15px', fontSize: '0.85rem', color: '#94a3b8', borderBottom: '2px solid #f8fafc', fontWeight: 800 }}>الإجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.map((student, i) => (
-              <tr key={i}>
-                <td style={{ padding: '20px 15px', borderBottom: '1px solid #f8fafc' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <img style={{ width: '48px', height: '48px', borderRadius: '50%' }} src={student.avatar} alt={student.name} />
-                    <div>
-                      <span style={{ display: 'block', fontWeight: 800, color: 'var(--teacher-primary)' }}>{student.name}</span>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{student.level}</span>
-                    </div>
-                  </div>
-                </td>
-                <td style={{ padding: '20px 15px', borderBottom: '1px solid #f8fafc', color: '#475569', fontSize: '0.9rem', fontWeight: 700 }}>{student.activity}</td>
-                <td style={{ padding: '20px 15px', borderBottom: '1px solid #f8fafc' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <span style={{ fontWeight: 800, color: 'var(--teacher-primary)' }}>{student.score}</span>
-                    <div style={{ width: '80px', height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', background: '#f9c851', width: (parseInt(student.score) * 10) + '%' }}></div>
-                    </div>
-                  </div>
-                </td>
-                <td style={{ padding: '20px 15px', borderBottom: '1px solid #f8fafc' }}>
-                  <span style={{ display: 'inline-block', padding: '5px 12px', background: '#fff9eb', color: '#d97706', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 800 }}>{student.xp}</span>
-                </td>
-                <td style={{ padding: '20px 15px', borderBottom: '1px solid #f8fafc' }}>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button className="btn-3d-secondary" style={{ padding: '8px 15px', background: '#eef2ff', color: 'var(--teacher-primary)', border: 'none' }}>عرض الملف</button>
-                    <button className="btn-3d-secondary" style={{ width: '35px', height: '35px', padding: 0, justifyContent: 'center' }}><i className="fa-solid fa-star" style={{ color: '#f59e0b' }}></i></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div style={{ textAlign: 'center', marginTop: '25px', color: 'var(--teacher-primary)', fontWeight: 800, cursor: 'pointer', fontSize: '0.95rem' }}>عرض جميع الطلاب (42)</div>
       </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '30px', marginTop: '30px' }}>
-        <div className="card-3d" style={{ padding: '30px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--teacher-primary)' }}>تحليل التفاعل</h3>
-            <div style={{ display: 'flex', gap: '15px', fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--teacher-primary)' }}></div>إجابات</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f9c851' }}></div>تعليقات</div>
-            </div>
-          </div>
-          <div style={{ height: '180px', display: 'flex', alignItems: 'flex-end', gap: '40px', justifyContent: 'center' }}>
-            {[
-              { label: 'ابن بطوطة', h1: 100, h2: 60 },
-              { label: 'أسرار الغابة', h1: 140, h2: 80 },
-              { label: 'الأسد والفأر', h1: 110, h2: 40 },
-              { label: 'سندباد', h1: 90, h2: 30 },
-              { label: 'كليلة ودمنة', h1: 120, h2: 50 }
-            ].map((item, i) => (
-              <div key={i} style={{ textAlign: 'center' }}>
-                <div style={{ display: 'flex', gap: '5px', alignItems: 'flex-end' }}>
-                  <div style={{ width: '12px', height: `${item.h1}px`, background: 'var(--teacher-primary)', borderRadius: '4px' }}></div>
-                  <div style={{ width: '12px', height: `${item.h2}px`, background: '#f9c851', borderRadius: '4px' }}></div>
-                </div>
-                <div style={{ marginTop: '10px', fontSize: '0.75rem', fontWeight: '700', color: '#94a3b8' }}>{item.label}</div>
+      {topThree.length > 0 && (
+        <section className="teacher-top-grid">
+          {topThree.map((student) => (
+            <article className="teacher-top-card" key={student.id}>
+              <div className="teacher-top-rank">#{student.rank}</div>
+              <div className="teacher-avatar">
+                <img src={getMediaUrl(student.avatar)} alt={student.name} />
               </div>
-            ))}
-          </div>
-        </div>
+              <div>
+                <span className="teacher-student-name">{student.name}</span>
+                <span className="teacher-student-meta">{student.xp.toLocaleString("en-US")} XP · {student.completedStoriesCount} قصص</span>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
 
-        <div className="card-3d" style={{ background: 'var(--teacher-primary)', padding: '30px', color: '#fff', textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '20px', opacity: 0.9 }}><i className="fa-solid fa-trophy"></i></div>
-          <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '10px' }}>إنجاز جديد!</h3>
-          <p style={{ fontSize: '0.9rem', lineHeight: 1.6, opacity: 0.9, marginBottom: '25px' }}>
-            وصل 15 طالباً جديداً إلى المستوى الذهبي في اللغة الأمازيغية هذا الأسبوع. هل ترغب في إرسال رسالة تهنئة جماعية؟
-          </p>
-          <button className="btn-3d-secondary" style={{ width: '100%', background: '#f9c851', color: 'var(--teacher-primary)', border: 'none' }}>إرسال تهنئة</button>
-        </div>
-      </div>
+      <section className="teacher-table-card">
+        <h3 style={{ margin: "0 0 18px", color: "var(--teacher-primary)", fontWeight: 900 }}>ترتيب الطلاب الحقيقي</h3>
+        {filteredStudents.length ? (
+          <table className="teacher-students-table">
+            <thead>
+              <tr>
+                <th>الترتيب</th>
+                <th>الطالب</th>
+                <th>اللغة / المستوى</th>
+                <th>القصص</th>
+                <th>الاختبارات</th>
+                <th>متوسط النتائج</th>
+                <th>رسائل AI</th>
+                <th>XP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredStudents.map((student) => (
+                <tr key={student.id}>
+                  <td><span className="rank-pill">#{student.rank}</span></td>
+                  <td>
+                    <div className="student-cell">
+                      <div className="teacher-avatar">
+                        <img src={getMediaUrl(student.avatar)} alt={student.name} />
+                      </div>
+                      <div>
+                        <span className="teacher-student-name">{student.name}</span>
+                        <span className="teacher-student-meta">{student.status === "active" ? "نشط" : student.status}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{student.targetLanguage || "عام"} · {levelLabels[student.level] || student.level}</td>
+                  <td>{student.completedStoriesCount || 0}</td>
+                  <td>{student.passedQuizzesCount || 0} / {student.quizAttemptsCount || 0}</td>
+                  <td>
+                    <span>{student.averageQuizScore || 0}%</span>
+                    <div className="score-bar">
+                      <div className="score-bar-fill" style={{ width: `${Math.min(100, student.averageQuizScore || 0)}%` }}></div>
+                    </div>
+                  </td>
+                  <td>{student.aiMessagesCount || 0}</td>
+                  <td>
+                    <span className="xp-pill">
+                      <i className="fa-solid fa-star"></i>
+                      {student.xp.toLocaleString("en-US")} XP
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="empty-board">لا توجد بيانات طلاب مطابقة للفلاتر الحالية.</div>
+        )}
+      </section>
     </div>
   );
 };

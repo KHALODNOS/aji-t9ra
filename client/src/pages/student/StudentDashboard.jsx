@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import StudentLayout from "../../components/student/StudentLayout";
+import StudentStories from "./StudentStories";
+import StudentQuizzes from "./StudentQuizzes";
 import EducationalJourney from "./EducationalJourney";
 import SpeakingPractice from "./SpeakingPractice";
 import AudioSalons from "./AudioSalons";
@@ -8,6 +11,9 @@ import Leaderboard from "./Leaderboard";
 import Achievements from "./Achievements";
 import GeneralChat from "./GeneralChat";
 import StudentProfile from "./StudentProfile";
+import ShowVideo from "./ShowVideo";
+import api from "../../services/api";
+import { publishStudentRewards } from "../../utils/studentRewards";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -46,125 +52,99 @@ const StudentDashboard = () => {
     navigate("/login");
   };
 
-  // Dummy data matching the visual specs
-  const suggestedStories = [
-    {
-      id: "atlas",
-      title: "أسرار جبال الأطلس",
-      desc: "رحلة سحرية لاستكشاف كنوز جبال الأطلس المغربية بتنسيق تفاعلي ممتع",
-      img: "https://images.unsplash.com/photo-1538964173425-85c6a41d3b4b?w=600&auto=format&fit=crop&q=80",
-      rating: "4.9",
-      xp: "50+ XP",
-      level: "مبتدئ",
-      language: "الأمازيغية (Tifinagh)",
-      langCode: "amazigh",
-      location: "المغرب",
-    },
-    {
-      id: "future-city",
-      title: "مدينة المستقبل الخضراء",
-      desc: "كيف ستبدو المدن المغربية في المستقبل باستخدام الطاقة النظيفة؟",
-      img: "https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=600&auto=format&fit=crop&q=80",
-      rating: "4.8",
-      xp: "75+ XP",
-      level: "متوسط",
-      language: "عربي",
-      langCode: "arabic",
-      location: "المغرب",
-    }
-  ];
+  const [stories, setStories] = useState([]);
+  const [videos, setVideos] = useState([]);
 
-  const shortVideos = [
-    {
-      id: 1,
-      title: "نطق حروف الأمازيغية...",
-      cat: "لغة",
-      author: "أ. سارة العلمي",
-      gradient: "linear-gradient(135deg, #159c98 0%, #124e54 100%)",
-    },
-    {
-      id: 2,
-      title: "تاريخ فاس في 60 ثانية",
-      cat: "ثقافة",
-      author: "أ. فريد بني",
-      gradient: "linear-gradient(135deg, #1e7075 0%, #0c3538 100%)",
-    },
-    {
-      id: 3,
-      title: "كيف تقرأ أسرع؟",
-      cat: "نصيحة",
-      author: "د. ليلى فوزي",
-      gradient: "linear-gradient(135deg, #238a91 0%, #0f4044 100%)",
-    },
-    {
-      id: 4,
-      title: "Daily Greetings in English",
-      cat: "English",
-      author: "Mr. James",
-      gradient: "linear-gradient(135deg, #1c7c82 0%, #0d383b 100%)",
-    },
-    {
-      id: 5,
-      title: "حكاية السندباد البحري",
-      cat: "قصة",
-      author: "أ. مريم",
-      gradient: "linear-gradient(135deg, #14918e 0%, #0e4448 100%)",
-    }
-  ];
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        
+        const [storiesRes, videosRes] = await Promise.all([
+          axios.get("http://localhost:5000/api/stories/approved", config),
+          axios.get("http://localhost:5000/api/videos/approved", config)
+        ]);
 
-  const heritageStories = [
-    {
-      id: "crafts",
-      title: "حرف بلادي",
-      img: "https://images.unsplash.com/photo-1565192647048-f997ded87958?w=600&auto=format&fit=crop&q=80",
-      rating: "4.7",
-      language: "تيفيناغ",
-      langCode: "amazigh",
-      isReady: true
-    },
-    {
-      id: "time-travel",
-      title: "رحلة عبر الزمن",
-      img: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=600&auto=format&fit=crop&q=80",
-      rating: "4.9",
-      language: "عربي",
-      langCode: "arabic",
-      isReady: false
-    }
-  ];
+        setStories(storiesRes.data);
+        setVideos(videosRes.data);
+      } catch (error) {
+        console.error("Error fetching student content:", error);
+      }
+    };
+    fetchContent();
+  }, []);
 
-  const fantasyStories = [
-    {
-      id: "word-adventure",
-      title: "مغامرة الكلمات",
-      img: "https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?w=600&auto=format&fit=crop&q=80",
-      rating: "4.8",
-      language: "عربي",
-      langCode: "arabic",
-      isReady: true
+  const getLangCode = (lang) => {
+    switch (lang) {
+      case "Arabic": return "arabic";
+      case "French": return "french";
+      case "English": return "english";
+      case "Tifinagh": return "amazigh";
+      default: return "";
     }
-  ];
+  };
+
+  const getServerUrl = (path) => {
+    if (!path) return "https://images.unsplash.com/photo-1538964173425-85c6a41d3b4b?w=600";
+    if (path.startsWith("http")) return path;
+    return `http://localhost:5000/${path.replace(/\\/g, '/')}`;
+  };
+
+  const getGradient = (index) => {
+    const gradients = [
+      "linear-gradient(135deg, #159c98 0%, #124e54 100%)",
+      "linear-gradient(135deg, #1e7075 0%, #0c3538 100%)",
+      "linear-gradient(135deg, #238a91 0%, #0f4044 100%)",
+      "linear-gradient(135deg, #1c7c82 0%, #0d383b 100%)",
+      "linear-gradient(135deg, #14918e 0%, #0e4448 100%)"
+    ];
+    return gradients[index % gradients.length];
+  };
+
+  const recordStudentActivity = async (payload) => {
+    try {
+      const response = await api.post("/student/journey/activity", payload);
+      publishStudentRewards({ earnedBadges: response.data?.earnedBadges || [] });
+    } catch (error) {
+      console.error("Error recording student activity:", error);
+    }
+  };
+
+  const handleVideoWatch = (video) => {
+    recordStudentActivity({ type: "video_watch", videoId: video._id });
+    alert(`جاري تشغيل فيديو: ${video.title}`);
+  };
+
+  const handleVideoReaction = (event, video) => {
+    event.stopPropagation();
+    recordStudentActivity({ type: "video_reaction", videoId: video._id, reaction: "like" });
+  };
 
   // Filtering function
   const matchesFilter = (item) => {
+    const itemLangCode = getLangCode(item.language);
     const matchesLang =
       selectedLanguage === "الكل" ||
-      (selectedLanguage === "الأمازيغية (Tifinagh)" && item.langCode === "amazigh") ||
-      (selectedLanguage === "العربية" && item.langCode === "arabic") ||
-      (selectedLanguage === "الإنجليزية (English)" && item.langCode === "english") ||
-      (selectedLanguage === "الفرنسية (French)" && item.langCode === "french");
+      (selectedLanguage === "الأمازيغية (Tifinagh)" && itemLangCode === "amazigh") ||
+      (selectedLanguage === "العربية" && itemLangCode === "arabic") ||
+      (selectedLanguage === "الإنجليزية (English)" && itemLangCode === "english") ||
+      (selectedLanguage === "الفرنسية (French)" && itemLangCode === "french");
 
     const matchesSearch =
       searchText.trim() === "" ||
       item.title.toLowerCase().includes(searchText.toLowerCase()) ||
-      (item.desc && item.desc.toLowerCase().includes(searchText.toLowerCase()));
+      (item.content && item.content.toLowerCase().includes(searchText.toLowerCase()));
 
     return matchesLang && matchesSearch;
   };
 
-  const filteredSuggested = suggestedStories.filter(matchesFilter);
-  const filteredHeritage = heritageStories.filter(matchesFilter);
-  const filteredFantasy = fantasyStories.filter(matchesFilter);
+  const filteredStories = stories.filter(matchesFilter);
+  
+  // Split stories into suggested, heritage, and fantasy for demo UI purposes
+  const filteredSuggested = filteredStories.slice(0, 2);
+  const filteredHeritage = filteredStories.slice(2, 4);
+  const filteredFantasy = filteredStories.slice(4);
 
   const renderHomeContent = () => {
     return (
@@ -195,16 +175,16 @@ const StudentDashboard = () => {
           {filteredSuggested.length > 0 ? (
             <div className="suggested-grid">
               {filteredSuggested.map((story) => (
-                <div className="suggested-card" key={story.id}>
+                <div className="suggested-card" key={story._id}>
                   <div className="card-img-wrapper">
-                    <img src={story.img} alt={story.title} />
+                    <img src={getServerUrl(story.coverImage)} alt={story.title} />
                     <div className="badges-top">
                       <span className="lang-badge">{story.language}</span>
                       <span className="level-badge">{story.level}</span>
                     </div>
                     <div className="rating-badge">
                       <i className="fa-solid fa-star"></i>
-                      <span>{story.rating}</span>
+                      <span>4.9</span>
                     </div>
                     <div className="map-pin-badge">
                       <i className="fa-solid fa-map-pin"></i>
@@ -212,14 +192,14 @@ const StudentDashboard = () => {
                   </div>
                   <div className="card-body">
                     <h4 className="card-title">{story.title}</h4>
-                    <p className="card-desc">{story.desc}</p>
+                    <p className="card-desc">{story.content ? story.content.substring(0, 80) + '...' : ''}</p>
                     <div className="card-footer">
                       <button className="btn-read-story" onClick={() => setSelectedStory(story)}>
                         ابدأ القراءة
                       </button>
                       <span className="xp-rewards">
                         <i className="fa-solid fa-award"></i>
-                        <span>{story.xp}</span>
+                        <span>{story.personality?.xp || 50}+ XP</span>
                       </span>
                     </div>
                   </div>
@@ -247,27 +227,47 @@ const StudentDashboard = () => {
                 <span>المستوى الحالي: قارئ متميز ★</span>
               </div>
             </div>
-            <span className="view-all-link">عرض الكل</span>
+            <span className="view-all-link" onClick={() => setActivePage("videos")}>عرض الكل</span>
           </div>
 
           <div className="videos-scroll-container">
-            {shortVideos.map((video) => (
+            {videos.length > 0 ? videos.map((video, idx) => (
               <div
                 className="video-card"
-                key={video.id}
-                style={{ background: video.gradient }}
-                onClick={() => alert(`جاري تشغيل فيديو: ${video.title}`)}
+                key={video._id}
+                style={{ background: getGradient(idx) }}
+                onClick={() => handleVideoWatch(video)}
               >
                 <div className="video-play-btn">
                   <i className="fa-solid fa-play"></i>
                 </div>
+                <button
+                  type="button"
+                  onClick={(event) => handleVideoReaction(event, video)}
+                  title="تفاعل مع الفيديو"
+                  style={{
+                    position: "absolute",
+                    top: 14,
+                    left: 14,
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                    border: "1px solid rgba(255,255,255,0.45)",
+                    background: "rgba(255,255,255,0.18)",
+                    color: "#fff",
+                    cursor: "pointer",
+                    zIndex: 2,
+                  }}
+                >
+                  <i className="fa-solid fa-heart"></i>
+                </button>
                 <div className="video-card-body">
-                  <span className="video-tag">{video.cat}</span>
+                  <span className="video-tag">{video.language}</span>
                   <h4 className="video-card-title">{video.title}</h4>
-                  <span className="video-author">{video.author}</span>
+                  <span className="video-author">{video.teacher?.fullName || video.teacher?.username || "أستاذ"}</span>
                 </div>
               </div>
-            ))}
+            )) : <p>لا توجد فيديوهات حاليا</p>}
           </div>
         </section>
 
@@ -292,20 +292,18 @@ const StudentDashboard = () => {
               {filteredHeritage.length > 0 ? (
                 <div className="library-story-row">
                   {filteredHeritage.map((story) => (
-                    <div className="library-story-card" key={story.id}>
+                    <div className="library-story-card" key={story._id}>
                       <div className="lib-img-wrapper">
-                        <img src={story.img} alt={story.title} />
+                        <img src={getServerUrl(story.coverImage)} alt={story.title} />
                         <div className="lib-badges">
                           <span className="lang-badge">{story.language}</span>
-                          {story.isReady && (
                             <span className="ready-badge">
                               <i className="fa-solid fa-circle-check"></i> Ready
                             </span>
-                          )}
                         </div>
                         <div className="lib-rating">
                           <i className="fa-solid fa-star"></i>
-                          <span>{story.rating}</span>
+                          <span>4.8</span>
                         </div>
                       </div>
                       <div className="lib-card-body">
@@ -335,20 +333,18 @@ const StudentDashboard = () => {
               {filteredFantasy.length > 0 ? (
                 <div className="library-story-row" style={{ gridTemplateColumns: "1fr" }}>
                   {filteredFantasy.map((story) => (
-                    <div className="library-story-card" key={story.id}>
+                    <div className="library-story-card" key={story._id}>
                       <div className="lib-img-wrapper">
-                        <img src={story.img} alt={story.title} />
+                        <img src={getServerUrl(story.coverImage)} alt={story.title} />
                         <div className="lib-badges">
                           <span className="lang-badge">{story.language}</span>
-                          {story.isReady && (
                             <span className="ready-badge">
                               <i className="fa-solid fa-circle-check"></i> Ready
                             </span>
-                          )}
                         </div>
                         <div className="lib-rating">
                           <i className="fa-solid fa-star"></i>
-                          <span>{story.rating}</span>
+                          <span>4.9</span>
                         </div>
                       </div>
                       <div className="lib-card-body">
@@ -374,12 +370,18 @@ const StudentDashboard = () => {
     switch (activePage) {
       case "home":
         return renderHomeContent();
+      case "stories":
+        return <StudentStories onOpenJourney={() => setActivePage("journey")} />;
+      case "quizzes":
+        return <StudentQuizzes onOpenJourney={() => setActivePage("journey")} />;
       case "journey":
         return <EducationalJourney onBack={() => setActivePage("home")} onLogout={handleLogout} />;
       case "speaking":
         return <SpeakingPractice onBack={() => setActivePage("home")} onLogout={handleLogout} />;
       case "salons":
         return <AudioSalons onBack={() => setActivePage("home")} onLogout={handleLogout} />;
+      case "videos":
+        return <ShowVideo onBack={() => setActivePage("home")} onLogout={handleLogout} />;
       case "leaderboard":
         return <Leaderboard onBack={() => setActivePage("home")} onLogout={handleLogout} />;
       case "achievements":
@@ -392,6 +394,10 @@ const StudentDashboard = () => {
         return renderHomeContent();
     }
   };
+
+  if (activePage === "videos") {
+    return <ShowVideo onClose={() => setActivePage("home")} />;
+  }
 
   return (
     <StudentLayout

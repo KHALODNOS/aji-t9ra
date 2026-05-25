@@ -1,46 +1,168 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import api from "../../services/api";
 
-const EducationalJourney = ({ onBack, onLogout }) => {
-  // State for search and interactions
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&auto=format&fit=crop&q=80";
+
+const getMediaUrl = (path) => {
+  if (!path) return FALLBACK_IMAGE;
+  if (path.startsWith("http")) return path;
+  return `http://localhost:5000/${path.replace(/\\/g, "/")}`;
+};
+
+const formatDate = (value) => {
+  if (!value) return "غير محدد";
+  return new Intl.DateTimeFormat("ar-MA", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
+};
+
+const EducationalJourney = () => {
+  const [journey, setJourney] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [searchText, setSearchText] = useState("");
-  const [favorites, setFavorites] = useState({ Itri: true }); // Heart toggle state
-  const [activeTab, setActiveTab] = useState("الرئيسية");
-  const [showNotification, setShowNotification] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [playingWord, setPlayingWord] = useState(null); // Audio click animation state
-  const [activeStory, setActiveStory] = useState(null); // Modal state for resuming/taking tests
+  const [favorites, setFavorites] = useState({});
+  const [playingWord, setPlayingWord] = useState(null);
+  const [activeItem, setActiveItem] = useState(null);
+  const [earnedBadges, setEarnedBadges] = useState([]);
+  const [xpReward, setXpReward] = useState(null);
 
-  // Vocabulary bank dummy data
-  const wordBank = [
-    { id: "aman", word: "Aman", tifinagh: "ⴰⵎⴰⵏ", arabic: "الماء" },
-    { id: "aghrum", word: "Aghrum", tifinagh: "ⴰⵖⵔⵓⵎ", arabic: "الخبز" },
-    { id: "itri", word: "Itri", tifinagh: "ⵉⵜⵔⵉ", arabic: "النجم" },
-    { id: "tafukt", word: "Tafukt", tifinagh: "ⵜⴰଫⵓⴽⵜ", arabic: "الشمس" },
-    { id: "asif", word: "Asif", tifinagh: "ⴰⵙⵉⴼ", arabic: "النهر" }
-  ];
+  useEffect(() => {
+    const fetchJourney = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await api.get("/student/journey");
+        setJourney(response.data);
+        const initialFavorites = {};
+        (response.data.wordBank || []).forEach((item) => {
+          initialFavorites[item.word] = Boolean(item.isFavorite);
+        });
+        setFavorites(initialFavorites);
+      } catch (err) {
+        console.error("Error loading educational journey:", err);
+        setError(err.response?.data?.message || "تعذر تحميل بيانات رحلتك التعليمية.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Badges dummy data
-  const badges = [
-    { id: 1, title: "بطل التيفيناغ", icon: "fa-award", type: "gold", active: true, desc: "منح لإتقان الحروف الأمازيغية وقراءة 5 نصوص تيفيناغ" },
-    { id: 2, title: "قارئ متميز", icon: "fa-book-open", type: "blue", active: true, desc: "منح لقراءة 10 قصص كاملة بانتظام" },
-    { id: 3, title: "خبير اللسانيات", icon: "fa-trophy", type: "brown", active: true, desc: "منح لحفظ أكثر من 100 كلمة في بنك الكلمات" },
-    { id: 4, title: "كاتب القصص", icon: "fa-lock", type: "locked", active: false, desc: "يقفل حتى تقوم بتأليف أول قصة خاصة بك" },
-    { id: 5, title: "المتحدث اللبق", icon: "fa-lock", type: "locked", active: false, desc: "يقفل حتى تشارك في 3 صالونات صوتية تفاعلية" }
-  ];
+    fetchJourney();
+  }, []);
 
-  // Handle playing word audio mock
+  useEffect(() => {
+    const readEarnedBadges = () => {
+      const raw = localStorage.getItem("newlyEarnedBadges");
+      if (!raw) return;
+
+      try {
+        const badges = JSON.parse(raw);
+        if (Array.isArray(badges) && badges.length > 0) {
+          setEarnedBadges(badges);
+          localStorage.removeItem("newlyEarnedBadges");
+        }
+      } catch (err) {
+        console.error("Error parsing earned badges:", err);
+        localStorage.removeItem("newlyEarnedBadges");
+      }
+    };
+
+    readEarnedBadges();
+    window.addEventListener("newlyEarnedBadges", readEarnedBadges);
+    return () => window.removeEventListener("newlyEarnedBadges", readEarnedBadges);
+  }, []);
+
+  useEffect(() => {
+    const applyXpReward = (event) => {
+      let reward = event?.detail;
+
+      if (!reward) {
+        const raw = localStorage.getItem("newlyEarnedXp");
+        if (!raw) return;
+
+        try {
+          reward = JSON.parse(raw);
+        } catch (err) {
+          console.error("Error parsing earned XP:", err);
+          localStorage.removeItem("newlyEarnedXp");
+          return;
+        }
+      }
+
+      const amount = Number(reward?.xpAwarded) || 0;
+      if (!amount) return;
+
+      setJourney((prev) => {
+        if (!prev) return prev;
+        const currentTotal = Number(prev.stats?.totalXp) || 0;
+        return {
+          ...prev,
+          stats: {
+            ...prev.stats,
+            totalXp: reward.totalXp ?? currentTotal + amount,
+          },
+        };
+      });
+      setXpReward(reward);
+      localStorage.removeItem("newlyEarnedXp");
+      window.clearTimeout(applyXpReward.timeoutId);
+      applyXpReward.timeoutId = window.setTimeout(() => setXpReward(null), 2600);
+    };
+
+    applyXpReward();
+    window.addEventListener("studentXpReward", applyXpReward);
+    return () => {
+      window.removeEventListener("studentXpReward", applyXpReward);
+      window.clearTimeout(applyXpReward.timeoutId);
+    };
+  }, []);
+
+  const filteredWords = useMemo(() => {
+    const words = journey?.wordBank || [];
+    const q = searchText.trim().toLowerCase();
+    if (!q) return words;
+    return words.filter((item) =>
+      [item.word, item.translation, item.arabic, item.storyTitle]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(q))
+    );
+  }, [journey, searchText]);
+
   const playAudio = (wordName) => {
     setPlayingWord(wordName);
-    setTimeout(() => setPlayingWord(null), 1000);
+    setTimeout(() => setPlayingWord(null), 900);
   };
 
-  // Toggle favorite words
-  const toggleFavorite = (wordName) => {
-    setFavorites(prev => ({
-      ...prev,
-      [wordName]: !prev[wordName]
-    }));
+  const toggleFavorite = async (wordName) => {
+    setFavorites((prev) => ({ ...prev, [wordName]: !prev[wordName] }));
+    try {
+      await api.post("/student/journey/words/favorite", { word: wordName });
+    } catch (err) {
+      console.error("Error toggling favorite word:", err);
+      setFavorites((prev) => ({ ...prev, [wordName]: !prev[wordName] }));
+    }
   };
+
+  const stats = journey?.stats || {};
+  const completedPercent = stats.totalStoriesCount
+    ? Math.min(100, Math.round((stats.completedStoriesCount / stats.totalStoriesCount) * 100))
+    : 0;
+
+  if (loading) {
+    return (
+      <div className="journey-state" dir="rtl">
+        <i className="fa-solid fa-circle-notch fa-spin"></i>
+        <p>جاري تحميل رحلتك التعليمية من قاعدة البيانات...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="journey-state error" dir="rtl">
+        <i className="fa-solid fa-triangle-exclamation"></i>
+        <p>{error}</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -48,249 +170,66 @@ const EducationalJourney = ({ onBack, onLogout }) => {
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
 
-        :root {
-          --bg-light: #f7f9fc; /* Clean modern slate background */
-          --sidebar-bg: #ffffff;
-          --primary-blue: #00458b; /* Deep Brand Blue */
-          --primary-blue-dark: #002d5c;
-          --primary-yellow: #f9c851; /* Vibrant Gold/Yellow */
-          --primary-yellow-hover: #e5b23d;
-          --text-main: #1d1d1d;
-          --text-muted: #8a98a5;
-          --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.02);
-          --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.04);
-        }
-
-        * {
-          box-sizing: border-box;
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body {
-          margin: 0;
+        .journey-page {
+          direction: rtl;
           font-family: 'Tajawal', sans-serif;
-          background: var(--bg-light);
-          direction: rtl;
-          color: var(--text-main);
+          color: #1e293b;
         }
 
-        .journey-container {
-          display: flex;
-          width: 100%;
-          min-height: 100vh;
-          background: var(--bg-light);
-          direction: rtl;
-        }
-
-        /* Sidebar RTL */
-        .sidebar {
-          width: 300px;
-          background: var(--sidebar-bg);
-          border-left: 1px solid #f1f4f8;
+        .journey-state {
+          min-height: 420px;
           display: flex;
           flex-direction: column;
-          padding: 30px 0;
-          flex-shrink: 0;
-          box-shadow: -4px 0 20px rgba(0, 0, 0, 0.01);
-        }
-
-        .brand-header {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          margin-bottom: 35px;
-          padding: 0 20px;
-        }
-
-        .brand-title {
-          font-size: 1.8rem;
-          font-weight: 900;
-          color: var(--primary-blue);
-          margin: 0;
-          letter-spacing: -0.5px;
-        }
-
-        .nav-list {
-          list-style: none;
-          padding: 0 15px;
-          margin: 0;
-          flex-grow: 1;
-        }
-
-        .nav-item-wrapper {
-          margin-bottom: 5px;
-        }
-
-        .nav-link {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          padding: 13px 20px;
-          text-decoration: none;
-          color: #64748b;
-          font-weight: 700;
-          cursor: pointer;
-          border-radius: 14px;
-          font-size: 0.95rem;
-        }
-
-        .nav-link:hover {
-          background: #f8fafc;
-          color: var(--primary-blue);
-        }
-
-        .nav-link.active {
-          background: #eef5fc;
-          color: var(--primary-blue);
-          border-right: 4px solid var(--primary-blue);
-          border-radius: 0 14px 14px 0;
-        }
-
-        .nav-link i {
-          font-size: 1.15rem;
-          width: 24px;
-          text-align: center;
-        }
-
-        /* Add Content Button */
-        .sidebar-action-container {
-          padding: 0 20px;
-          margin-bottom: 20px;
-        }
-
-        .action-add-btn {
-          width: 100%;
-          background: var(--primary-blue);
-          color: #ffffff;
-          border: none;
-          border-radius: 16px;
-          padding: 14px;
-          font-weight: 800;
-          font-size: 0.95rem;
-          cursor: pointer;
-          display: flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          box-shadow: 0 4px 15px rgba(0, 69, 139, 0.15);
-        }
-
-        .action-add-btn:hover {
-          background: var(--primary-blue-dark);
-          transform: translateY(-2px);
-        }
-
-        /* Sidebar Profile Card */
-        .sidebar-bottom {
-          padding: 20px 20px 0;
-          border-top: 1px solid #f1f4f8;
-        }
-
-        .profile-card {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 20px;
-          margin-bottom: 12px;
-        }
-
-        .profile-img-container {
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          overflow: hidden;
-          border: 2px solid #e2e8f0;
-          flex-shrink: 0;
-        }
-
-        .profile-img-container img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .profile-info {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .profile-name {
-          font-size: 0.95rem;
+          gap: 14px;
+          direction: rtl;
+          color: #00458b;
+          font-family: 'Tajawal', sans-serif;
           font-weight: 800;
-          color: var(--text-main);
         }
 
-        .profile-role {
-          font-size: 0.75rem;
-          color: #64748b;
-          font-weight: 600;
-          margin-top: 2px;
+        .journey-state i {
+          font-size: 2rem;
         }
 
-        .logout-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          color: #64748b;
-          font-weight: 700;
-          font-size: 0.85rem;
-          cursor: pointer;
-          padding: 10px;
-          border-radius: 12px;
+        .journey-state.error {
+          color: #b91c1c;
         }
 
-        .logout-btn:hover {
-          background: #fef2f2;
-          color: #ef4444;
-        }
-
-        /* Main Wrapper */
-        .main-wrapper {
-          flex-grow: 1;
-          display: flex;
-          flex-direction: column;
-          overflow-y: auto;
-          height: 100vh;
-        }
-
-        /* Topbar styling */
-        .topbar {
-          padding: 30px 40px 15px 40px;
+        .journey-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          gap: 20px;
+          margin-bottom: 26px;
         }
 
-        .page-brand-title {
+        .journey-title {
+          margin: 0;
+          color: #00458b;
           font-size: 1.8rem;
           font-weight: 900;
-          color: var(--primary-blue);
-          margin: 0;
         }
 
-        .topbar-controls {
-          display: flex;
-          align-items: center;
-          gap: 20px;
+        .journey-subtitle {
+          margin: 6px 0 0;
+          color: #64748b;
+          font-size: 0.9rem;
+          font-weight: 700;
         }
 
-        /* Search input wrapper */
         .search-wrapper {
           position: relative;
-          width: 320px;
+          width: min(340px, 100%);
         }
 
-        .search-icon-inside {
+        .search-wrapper i {
           position: absolute;
           left: 15px;
           top: 50%;
           transform: translateY(-50%);
           color: #94a3b8;
-          font-size: 0.95rem;
         }
 
         .search-input {
@@ -298,283 +237,165 @@ const EducationalJourney = ({ onBack, onLogout }) => {
           border: 1px solid #e2e8f0;
           background: #ffffff;
           border-radius: 16px;
-          padding: 11px 15px 11px 40px;
+          padding: 12px 16px 12px 42px;
           font-family: inherit;
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: var(--text-main);
+          font-size: 0.9rem;
+          font-weight: 700;
+          color: #1e293b;
           outline: none;
-        }
-
-        .search-input::placeholder {
-          color: #94a3b8;
-        }
-
-        .search-input:focus {
-          border-color: var(--primary-blue);
-          box-shadow: 0 0 0 3px rgba(0, 69, 139, 0.1);
-        }
-
-        /* Action Icons */
-        .topbar-icon-btn {
-          width: 44px;
-          height: 44px;
-          border-radius: 14px;
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          color: #64748b;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          font-size: 1.1rem;
-          position: relative;
-        }
-
-        .topbar-icon-btn:hover {
-          color: var(--primary-blue);
-          background: #f8fafc;
-          border-color: #cbd5e1;
-        }
-
-        .dot-badge {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: #ef4444;
-        }
-
-        /* Main Content Container */
-        .content-area {
-          padding: 10px 40px 40px;
-        }
-
-        /* Stats Grid (ملخص التقدم) */
-        .stats-section {
-          margin-bottom: 35px;
         }
 
         .section-title {
           font-size: 1.15rem;
-          font-weight: 800;
+          font-weight: 900;
           color: #1e293b;
-          margin: 0 0 20px 0;
+          margin: 0 0 18px;
         }
 
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 25px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 18px;
+          margin-bottom: 34px;
+        }
+
+        .stat-card, .data-card, .badges-row {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.035);
         }
 
         .stat-card {
-          background: #ffffff;
-          border-radius: 24px;
-          padding: 24px;
-          border: 1px solid #e2e8f0;
-          box-shadow: var(--shadow-sm);
+          border-radius: 22px;
+          padding: 22px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .stat-card:hover {
-          transform: translateY(-3px);
-          box-shadow: var(--shadow-md);
-        }
-
-        .stat-content {
-          display: flex;
-          flex-direction: column;
+          min-height: 118px;
         }
 
         .stat-label {
-          font-size: 0.85rem;
+          display: block;
           color: #64748b;
-          font-weight: 700;
-          margin-bottom: 5px;
+          font-size: 0.82rem;
+          font-weight: 800;
+          margin-bottom: 8px;
         }
 
         .stat-value {
+          color: #00458b;
           font-size: 1.8rem;
           font-weight: 900;
-          color: var(--primary-blue);
         }
 
-        .stat-icon-wrapper {
-          width: 56px;
-          height: 56px;
-          border-radius: 18px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.4rem;
-        }
-
-        .stat-icon-wrapper.blue {
+        .stat-icon {
+          width: 54px;
+          height: 54px;
+          border-radius: 17px;
+          display: grid;
+          place-items: center;
           background: #e0f2fe;
           color: #0284c7;
+          font-size: 1.35rem;
         }
 
-        .stat-icon-wrapper.yellow {
+        .stat-icon.gold {
           background: #fef3c7;
-          color: #d97706;
+          color: #b45309;
         }
 
-        /* Top Tag inside hours stat card */
-        .stat-top-tag {
-          position: absolute;
-          top: 12px;
-          right: 20px;
-          font-size: 0.65rem;
-          font-weight: 700;
-          color: #94a3b8;
-          display: flex;
-          align-items: center;
-          gap: 5px;
+        .section-block {
+          margin-bottom: 34px;
         }
 
-        /* SVG Circular Progress Gauge */
-        .circular-progress-wrapper {
-          position: relative;
-          width: 60px;
-          height: 60px;
-        }
-
-        .circular-progress-text {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-size: 0.8rem;
-          font-weight: 800;
-          color: var(--primary-blue);
-        }
-
-        /* Continue Reading (تابع القراءة) */
-        .continue-section {
-          margin-bottom: 35px;
-        }
-
-        .continue-grid {
+        .cards-grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 25px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 20px;
         }
 
-        .continue-card {
-          background: #ffffff;
-          border-radius: 24px;
-          padding: 20px;
-          border: 1px solid #e2e8f0;
-          box-shadow: var(--shadow-sm);
+        .data-card {
+          border-radius: 22px;
+          padding: 18px;
           display: flex;
-          gap: 20px;
+          gap: 18px;
           align-items: center;
         }
 
-        .continue-card:hover {
-          transform: translateY(-3px);
-          box-shadow: var(--shadow-md);
-        }
-
-        .continue-img {
-          width: 140px;
-          height: 100px;
+        .card-image {
+          width: 132px;
+          height: 94px;
           border-radius: 16px;
           object-fit: cover;
           flex-shrink: 0;
         }
 
-        .continue-body {
-          flex-grow: 1;
-          display: flex;
-          flex-direction: column;
+        .card-body {
+          min-width: 0;
+          flex: 1;
         }
 
-        .continue-title {
+        .card-title {
+          margin: 0 0 5px;
           font-size: 1rem;
-          font-weight: 800;
+          font-weight: 900;
           color: #1e293b;
-          margin: 0 0 4px 0;
         }
 
-        .continue-level {
-          font-size: 0.75rem;
+        .card-meta {
           color: #64748b;
-          font-weight: 700;
+          font-size: 0.78rem;
+          font-weight: 800;
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
           margin-bottom: 12px;
         }
 
-        .progress-bar-container {
-          width: 100%;
+        .progress-bar {
           height: 8px;
           background: #f1f5f9;
-          border-radius: 4px;
+          border-radius: 999px;
           overflow: hidden;
-          margin-bottom: 6px;
+          margin-bottom: 8px;
         }
 
-        .progress-bar-fill {
+        .progress-fill {
           height: 100%;
-          background: #3b82f6;
-          border-radius: 4px;
+          background: #00458b;
         }
 
-        .progress-meta {
+        .card-actions {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          gap: 12px;
         }
 
-        .progress-percent {
-          font-size: 0.7rem;
+        .soft-text {
           color: #64748b;
-          font-weight: 700;
-        }
-
-        .btn-continue {
-          background: var(--primary-blue);
-          color: #ffffff;
-          border: none;
-          padding: 6px 16px;
-          border-radius: 10px;
-          font-weight: 800;
           font-size: 0.75rem;
+          font-weight: 800;
+        }
+
+        .primary-btn {
+          border: 0;
+          background: #00458b;
+          color: white;
+          border-radius: 12px;
+          padding: 8px 16px;
+          font-family: inherit;
+          font-size: 0.78rem;
+          font-weight: 900;
           cursor: pointer;
-        }
-
-        .btn-continue:hover {
-          background: var(--primary-blue-dark);
-        }
-
-        /* Word Bank (بنك الكلمات) */
-        .words-section {
-          margin-bottom: 35px;
         }
 
         .words-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          gap: 18px;
           margin-bottom: 18px;
-        }
-
-        .view-all-link {
-          font-size: 0.85rem;
-          font-weight: 700;
-          color: #0ea5e9;
-          text-decoration: none;
-          cursor: pointer;
-        }
-
-        .view-all-link:hover {
-          text-decoration: underline;
         }
 
         .words-row {
@@ -582,385 +403,199 @@ const EducationalJourney = ({ onBack, onLogout }) => {
           gap: 15px;
           overflow-x: auto;
           padding-bottom: 10px;
-          scrollbar-width: thin;
         }
 
         .word-card {
-          min-width: 160px;
+          min-width: 168px;
           background: #f4f8fd;
           border: 1px solid #e0ecf8;
           border-radius: 20px;
-          padding: 16px;
+          padding: 18px 14px;
           display: flex;
           flex-direction: column;
           align-items: center;
           position: relative;
         }
 
-        .word-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(15, 61, 107, 0.05);
-          background: #ebf3fc;
+        .word-action {
+          position: absolute;
+          top: 12px;
+          width: 28px;
+          height: 28px;
+          border: 0;
+          border-radius: 50%;
+          background: transparent;
+          color: #00458b;
+          cursor: pointer;
         }
 
-        .word-speaker-btn {
-          position: absolute;
+        .word-speaker {
           right: 12px;
-          top: 12px;
-          background: transparent;
-          border: none;
-          color: var(--primary-blue);
-          font-size: 0.85rem;
-          cursor: pointer;
-          width: 26px;
-          height: 26px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
         }
 
-        .word-speaker-btn:hover {
-          background: rgba(0, 69, 139, 0.08);
-        }
-
-        .word-fav-btn {
-          position: absolute;
+        .word-fav {
           left: 12px;
-          top: 12px;
-          background: transparent;
-          border: none;
           color: #cbd5e1;
-          font-size: 0.85rem;
-          cursor: pointer;
-          width: 26px;
-          height: 26px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
         }
 
-        .word-fav-btn:hover {
-          background: rgba(239, 68, 68, 0.08);
-          color: #fca5a5;
-        }
-
-        .word-fav-btn.active {
+        .word-fav.active {
           color: #ef4444;
         }
 
-        .word-phonetic {
-          font-size: 1.15rem;
-          font-weight: 800;
-          color: var(--primary-blue);
-          margin-top: 10px;
+        .word-main {
+          margin-top: 16px;
+          color: #00458b;
+          font-size: 1.1rem;
+          font-weight: 900;
         }
 
-        .word-tifinagh {
-          font-size: 0.75rem;
-          color: #64748b;
-          margin: 4px 0;
-          font-weight: 700;
-          letter-spacing: 1px;
-        }
-
-        .word-translation {
-          font-size: 0.85rem;
+        .word-translation, .word-story {
           color: #475569;
-          font-weight: 700;
+          font-size: 0.82rem;
+          font-weight: 800;
+          text-align: center;
         }
 
-        /* Sound Playing Animation Wave */
+        .word-story {
+          margin-top: 5px;
+          color: #94a3b8;
+          font-size: 0.7rem;
+        }
+
         .audio-wave {
           display: flex;
           gap: 2px;
           align-items: center;
           height: 12px;
-          margin-top: 5px;
+          margin-top: 8px;
         }
 
         .audio-bar {
           width: 2px;
           height: 100%;
-          background: var(--primary-blue);
+          background: #00458b;
           animation: bounce 0.6s infinite alternate;
         }
 
         .audio-bar:nth-child(2) { animation-delay: 0.15s; }
         .audio-bar:nth-child(3) { animation-delay: 0.3s; }
-
-        @keyframes bounce {
-          from { height: 3px; }
-          to { height: 12px; }
-        }
-
-        /* Achieved Badges (الأوسمة المحققة) */
-        .badges-section {
-          margin-bottom: 35px;
-        }
+        @keyframes bounce { from { height: 3px; } to { height: 12px; } }
 
         .badges-row {
-          display: flex;
-          gap: 30px;
-          justify-content: space-around;
-          background: #ffffff;
-          padding: 25px;
-          border-radius: 24px;
-          border: 1px solid #e2e8f0;
-          box-shadow: var(--shadow-sm);
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 18px;
+          padding: 22px;
+          border-radius: 22px;
         }
 
         .badge-item {
           display: flex;
           flex-direction: column;
           align-items: center;
-          cursor: pointer;
+          gap: 10px;
+          text-align: center;
           position: relative;
         }
 
         .badge-circle {
-          width: 64px;
-          height: 64px;
+          width: 66px;
+          height: 66px;
           border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.6rem;
-          margin-bottom: 10px;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-          position: relative;
+          display: grid;
+          place-items: center;
+          color: #ffffff;
+          font-size: 1.45rem;
+          box-shadow: inset 0 -8px 18px rgba(0,0,0,0.08);
         }
 
-        /* Badge Custom Types */
-        .badge-circle.gold {
-          background: #fef3c7;
-          color: #ca8a04;
-          border: 2px solid #fde68a;
-        }
-
-        .badge-circle.blue {
-          background: #e0f2fe;
-          color: #0284c7;
-          border: 2px solid #bae6fd;
-        }
-
-        .badge-circle.brown {
-          background: #ffedd5;
-          color: #a855f7;
-          border: 2px solid #f5d0fe;
-        }
-
-        .badge-circle.locked {
-          background: #f1f5f9;
-          color: #94a3b8;
-          border: 2px solid #e2e8f0;
-          opacity: 0.5;
-        }
+        .badge-circle.gold { background: #f59e0b; }
+        .badge-circle.blue { background: #0284c7; }
+        .badge-circle.brown { background: #92400e; }
+        .badge-item.locked .badge-circle { background: #cbd5e1; color: #64748b; }
 
         .badge-name {
-          font-size: 0.85rem;
-          font-weight: 800;
-          color: #334155;
-        }
-
-        .badge-item.locked .badge-name {
-          color: #94a3b8;
-        }
-
-        /* Tooltip style */
-        .badge-tooltip {
-          position: absolute;
-          bottom: 85px;
-          background: #1e293b;
-          color: #ffffff;
-          font-size: 0.75rem;
-          padding: 8px 12px;
-          border-radius: 10px;
-          width: 160px;
-          text-align: center;
-          z-index: 10;
-          box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-          line-height: 1.4;
-          font-weight: 600;
-        }
-
-        .badge-tooltip::after {
-          content: "";
-          position: absolute;
-          top: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          border-width: 6px;
-          border-style: solid;
-          border-color: #1e293b transparent transparent transparent;
-        }
-
-        /* Completed Library (المكتبة المكتملة) */
-        .completed-section {
-          margin-bottom: 20px;
-        }
-
-        .completed-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 25px;
-        }
-
-        .completed-card {
-          background: #ffffff;
-          border-radius: 24px;
-          padding: 20px;
-          border: 1px solid #e2e8f0;
-          box-shadow: var(--shadow-sm);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .completed-card:hover {
-          transform: translateY(-3px);
-          box-shadow: var(--shadow-md);
-        }
-
-        .completed-left {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .completed-title {
-          font-size: 1.15rem;
+          color: #1e293b;
+          font-size: 0.78rem;
           font-weight: 900;
-          color: var(--primary-blue);
-          margin: 0 0 5px 0;
         }
 
-        .completed-date {
-          font-size: 0.75rem;
+        .badge-desc {
           color: #64748b;
+          font-size: 0.68rem;
           font-weight: 700;
-          margin-bottom: 15px;
+          line-height: 1.45;
         }
 
-        .completed-actions {
-          display: flex;
-          align-items: center;
-          gap: 15px;
+        .quiz-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 18px;
         }
 
-        .link-re-read {
-          font-size: 0.8rem;
-          font-weight: 800;
-          color: #3b82f6;
-          text-decoration: none;
-          cursor: pointer;
-        }
-
-        .link-re-read:hover {
-          text-decoration: underline;
-        }
-
-        .btn-take-test {
-          background: var(--primary-yellow);
-          color: #4b3805;
-          border: none;
-          padding: 8px 16px;
-          border-radius: 12px;
-          font-weight: 800;
-          font-size: 0.8rem;
-          cursor: pointer;
-          box-shadow: 0 3px 8px rgba(249, 200, 81, 0.2);
-        }
-
-        .btn-take-test:hover {
-          background: var(--primary-yellow-hover);
-        }
-
-        .completed-img-wrapper {
-          position: relative;
-          width: 90px;
-          height: 90px;
-          border-radius: 18px;
+        .quiz-card {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 22px;
           overflow: hidden;
-          flex-shrink: 0;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.035);
         }
 
-        .completed-img-wrapper img {
+        .quiz-card img {
           width: 100%;
-          height: 100%;
+          height: 128px;
           object-fit: cover;
         }
 
-        .check-badge {
-          position: absolute;
-          top: 6px;
-          right: 6px;
-          width: 22px;
-          height: 22px;
-          background: #22c55e;
-          color: #ffffff;
-          border-radius: 50%;
-          display: flex;
+        .quiz-body {
+          padding: 16px;
+        }
+
+        .quiz-reward {
+          display: inline-flex;
           align-items: center;
-          justify-content: center;
-          font-size: 0.65rem;
-          border: 1.5px solid #ffffff;
+          gap: 6px;
+          color: #b45309;
+          background: #fef3c7;
+          border-radius: 999px;
+          padding: 5px 10px;
+          font-size: 0.72rem;
+          font-weight: 900;
+          margin-bottom: 10px;
         }
 
-        /* Popups / Custom Toasts style */
-        .toast-popup {
-          position: fixed;
-          bottom: 30px;
-          right: 30px;
-          background: #1e293b;
-          color: #ffffff;
-          padding: 15px 25px;
-          border-radius: 16px;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-          z-index: 100;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          font-weight: 700;
-          font-size: 0.85rem;
-          animation: toastAppear 0.3s ease;
+        .empty-state {
+          background: #ffffff;
+          border: 1px dashed #cbd5e1;
+          border-radius: 20px;
+          padding: 24px;
+          color: #64748b;
+          text-align: center;
+          font-weight: 800;
         }
 
-        @keyframes toastAppear {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .toast-popup i {
-          color: var(--primary-yellow);
-        }
-
-        /* Story Modal simulator */
         .story-modal-overlay {
           position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.6);
-          z-index: 100;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.55);
+          z-index: 1000;
           display: flex;
           align-items: center;
           justify-content: center;
+          padding: 20px;
           backdrop-filter: blur(4px);
         }
 
         .story-modal-card {
-          background: #ffffff;
-          width: 480px;
-          border-radius: 28px;
+          background: white;
+          width: min(480px, 100%);
+          border-radius: 26px;
           overflow: hidden;
-          box-shadow: 0 15px 40px rgba(0,0,0,0.15);
           text-align: center;
         }
 
         .modal-header-img {
-          height: 180px;
+          height: 178px;
           position: relative;
         }
 
@@ -972,234 +607,288 @@ const EducationalJourney = ({ onBack, onLogout }) => {
 
         .modal-close-btn {
           position: absolute;
-          top: 15px;
-          left: 15px;
-          width: 32px;
-          height: 32px;
+          top: 14px;
+          left: 14px;
+          width: 34px;
+          height: 34px;
+          border: 0;
           border-radius: 50%;
-          background: #ffffff;
-          border: none;
+          background: white;
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.95rem;
         }
 
         .modal-body {
-          padding: 25px 30px;
+          padding: 24px;
         }
 
         .modal-title {
-          font-size: 1.3rem;
+          margin: 0 0 10px;
+          color: #00458b;
+          font-size: 1.25rem;
           font-weight: 900;
-          color: var(--primary-blue);
-          margin: 0 0 10px 0;
         }
 
         .modal-text {
-          font-size: 0.9rem;
+          margin: 0 0 20px;
           color: #64748b;
-          line-height: 1.6;
-          margin: 0 0 20px 0;
-        }
-
-        .btn-modal-action {
-          width: 100%;
-          background: var(--primary-blue);
-          color: #ffffff;
-          border: none;
-          padding: 12px;
-          border-radius: 14px;
-          font-weight: 800;
           font-size: 0.9rem;
-          cursor: pointer;
+          line-height: 1.7;
+          font-weight: 700;
         }
 
-        .btn-modal-action:hover {
-          background: var(--primary-blue-dark);
+        .modal-questions {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          max-height: 260px;
+          overflow-y: auto;
+          text-align: right;
+          margin-bottom: 18px;
         }
 
-        @media (max-width: 1024px) {
-          .stats-grid {
+        .modal-question {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 14px;
+        }
+
+        .modal-question-title {
+          margin: 0 0 10px;
+          color: #1e293b;
+          font-size: 0.86rem;
+          font-weight: 900;
+          line-height: 1.6;
+        }
+
+        .modal-options {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .modal-option {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 999px;
+          padding: 6px 10px;
+          color: #475569;
+          font-size: 0.74rem;
+          font-weight: 800;
+        }
+
+        .earned-badge-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.58);
+          z-index: 1200;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          backdrop-filter: blur(4px);
+        }
+
+        .earned-badge-card {
+          width: min(430px, 100%);
+          background: #ffffff;
+          border-radius: 26px;
+          padding: 28px;
+          text-align: center;
+          box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+        }
+
+        .earned-badge-icon {
+          width: 86px;
+          height: 86px;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
+          margin: 0 auto 16px;
+          color: white;
+          font-size: 2rem;
+          background: #f59e0b;
+          box-shadow: inset 0 -10px 22px rgba(0,0,0,0.12);
+        }
+
+        .earned-badge-icon.blue { background: #0284c7; }
+        .earned-badge-icon.brown { background: #92400e; }
+
+        .earned-badge-title {
+          margin: 0 0 8px;
+          color: #00458b;
+          font-size: 1.35rem;
+          font-weight: 900;
+        }
+
+        .earned-badge-text {
+          margin: 0 0 18px;
+          color: #64748b;
+          line-height: 1.7;
+          font-weight: 800;
+        }
+
+        .xp-toast {
+          position: fixed;
+          top: 24px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 1300;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: #111827;
+          color: #ffffff;
+          border: 1px solid rgba(255,255,255,0.14);
+          border-radius: 999px;
+          padding: 12px 18px;
+          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.26);
+          font-weight: 900;
+          animation: xp-pop 0.45s ease both, xp-float 2.2s ease 0.45s both;
+        }
+
+        .xp-toast i {
+          color: #facc15;
+        }
+
+        @keyframes xp-pop {
+          from { opacity: 0; transform: translate(-50%, -18px) scale(0.86); }
+          to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+        }
+
+        @keyframes xp-float {
+          0%, 75% { opacity: 1; }
+          100% { opacity: 0; transform: translate(-50%, -18px) scale(0.96); }
+        }
+
+        @media (max-width: 1100px) {
+          .stats-grid, .quiz-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .badges-row {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 760px) {
+          .journey-header, .words-header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .stats-grid, .cards-grid, .quiz-grid, .badges-row {
             grid-template-columns: 1fr;
           }
-          .continue-grid {
-            grid-template-columns: 1fr;
+          .data-card {
+            align-items: flex-start;
           }
-          .completed-grid {
-            grid-template-columns: 1fr;
+          .card-image {
+            width: 96px;
+            height: 82px;
           }
         }
       `}</style>
 
-        {/* Content Area */}
-        <div className="content-area" style={{ padding: 0 }}>
-          {/* Section 1: Progress Summary (ملخص التقدم) */}
-          <section className="stats-section">
-            <h3 className="section-title">ملخص التقدم</h3>
-            <div className="stats-grid">
-              {/* Learning Hours */}
-              <div className="stat-card">
-                <span className="stat-top-tag">
-                  <i className="fa-solid fa-cloud-arrow-up"></i>
-                  <span>تحديث منذ 5 دقائق</span>
-                </span>
-                <div className="stat-content" style={{ marginTop: "10px" }}>
-                  <span className="stat-label">ساعات التعلم</span>
-                  <span className="stat-value">24 ساعة</span>
-                </div>
-                <div className="stat-icon-wrapper blue" style={{ marginTop: "10px" }}>
-                  <i className="fa-regular fa-clock"></i>
-                </div>
-              </div>
+      <div className="journey-page">
+        <header className="journey-header">
+          <div>
+            <h2 className="journey-title">رحلتي التعليمية</h2>
+            <p className="journey-subtitle">بيانات حقيقية من القصص، بنك الكلمات، الاختبارات، وتقدمك المحفوظ.</p>
+          </div>
+          <div className="search-wrapper">
+            <i className="fa-solid fa-magnifying-glass"></i>
+            <input
+              className="search-input"
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              placeholder="ابحث في بنك الكلمات..."
+            />
+          </div>
+        </header>
 
-              {/* New Words */}
-              <div className="stat-card">
-                <div className="stat-content">
-                  <span className="stat-label">الكلمات الجديدة</span>
-                  <span className="stat-value">150 كلمة</span>
-                </div>
-                <div className="stat-icon-wrapper yellow">
-                  <i className="fa-solid fa-book"></i>
-                </div>
-              </div>
-
-              {/* Completed Stories (75% circular progress) */}
-              <div className="stat-card">
-                <div className="stat-content">
-                  <span className="stat-label">القصص المكتملة</span>
-                  <span className="stat-value">12 قصص</span>
-                </div>
-                <div className="circular-progress-wrapper">
-                  <svg width="60" height="60" viewBox="0 0 36 36">
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="#f1f5f9"
-                      strokeWidth="3.5"
-                    />
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="#1e3a8a"
-                      strokeWidth="3.5"
-                      strokeDasharray="75, 100"
-                    />
-                  </svg>
-                  <div className="circular-progress-text">75%</div>
-                </div>
-              </div>
+        <section className="stats-grid">
+          <div className="stat-card">
+            <div>
+              <span className="stat-label">نقاط XP</span>
+              <span className="stat-value">{stats.totalXp || 0} XP</span>
             </div>
-          </section>
+            <div className="stat-icon gold"><i className="fa-solid fa-star"></i></div>
+          </div>
+          <div className="stat-card">
+            <div>
+              <span className="stat-label">الكلمات المتاحة</span>
+              <span className="stat-value">{stats.wordBankCount || 0}</span>
+            </div>
+            <div className="stat-icon gold"><i className="fa-solid fa-book"></i></div>
+          </div>
+          <div className="stat-card">
+            <div>
+              <span className="stat-label">القصص المكتملة</span>
+              <span className="stat-value">{stats.completedStoriesCount || 0}</span>
+            </div>
+            <div className="stat-icon"><i className="fa-solid fa-check"></i></div>
+          </div>
+          <div className="stat-card">
+            <div>
+              <span className="stat-label">الاختبارات الحقيقية</span>
+              <span className="stat-value">{stats.availableQuizzesCount || 0}</span>
+            </div>
+            <div className="stat-icon gold"><i className="fa-solid fa-file-circle-question"></i></div>
+          </div>
+        </section>
 
-          {/* Section 2: Continue Reading (تابع القراءة) */}
-          <section className="continue-section">
-            <h3 className="section-title">تابع القراءة</h3>
-            <div className="continue-grid">
-              {/* Forest Adventure */}
-              <div className="continue-card">
-                <img
-                  src="https://images.unsplash.com/photo-1448375240586-882707db888b?w=300&auto=format&fit=crop&q=80"
-                  alt="Forest Adventure"
-                  className="continue-img"
-                />
-                <div className="continue-body">
-                  <h4 className="continue-title">مغامرة في الغابة</h4>
-                  <span className="continue-level">المستوى: متوسط</span>
-                  <div className="progress-bar-container">
-                    <div className="progress-bar-fill" style={{ width: "60%" }}></div>
-                  </div>
-                  <div className="progress-meta">
-                    <span className="progress-percent">اكتملت بنسبة 60%</span>
-                    <button
-                      className="btn-continue"
-                      onClick={() =>
-                        setActiveStory({
-                          title: "مغامرة في الغابة",
-                          level: "متوسط",
-                          progress: "60%",
-                          img: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=300&auto=format&fit=crop&q=80"
-                        })
-                      }
-                    >
-                      استكمال
-                    </button>
+        <section className="section-block">
+          <h3 className="section-title">تابع القراءة</h3>
+          {journey.continueStories?.length ? (
+            <div className="cards-grid">
+              {journey.continueStories.map((story) => (
+                <div className="data-card" key={story.id}>
+                  <img className="card-image" src={getMediaUrl(story.coverImage)} alt={story.title} />
+                  <div className="card-body">
+                    <h4 className="card-title">{story.title}</h4>
+                    <div className="card-meta">
+                      <span>المستوى: {story.level || "غير محدد"}</span>
+                      <span>{story.language}</span>
+                    </div>
+                    <div className="progress-bar">
+                      <div className="progress-fill" style={{ width: `${story.progress || 0}%` }}></div>
+                    </div>
+                    <div className="card-actions">
+                      <span className="soft-text">اكتملت بنسبة {story.progress || 0}%</span>
+                      <button className="primary-btn" onClick={() => setActiveItem({ type: "story", ...story })}>
+                        استكمال
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Ancient City Secrets */}
-              <div className="continue-card">
-                <img
-                  src="https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=300&auto=format&fit=crop&q=80"
-                  alt="Ancient City"
-                  className="continue-img"
-                />
-                <div className="continue-body">
-                  <h4 className="continue-title">أسرار المدينة القديمة</h4>
-                  <span className="continue-level">المستوى: مبتدئ</span>
-                  <div className="progress-bar-container">
-                    <div className="progress-bar-fill" style={{ width: "30%" }}></div>
-                  </div>
-                  <div className="progress-meta">
-                    <span className="progress-percent">اكتملت بنسبة 30%</span>
-                    <button
-                      className="btn-continue"
-                      onClick={() =>
-                        setActiveStory({
-                          title: "أسرار المدينة القديمة",
-                          level: "مبتدئ",
-                          progress: "30%",
-                          img: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=300&auto=format&fit=crop&q=80"
-                        })
-                      }
-                    >
-                      استكمال
-                    </button>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
-          </section>
+          ) : (
+            <div className="empty-state">لا توجد قصص معتمدة أو تقدم قراءة محفوظ حاليا.</div>
+          )}
+        </section>
 
-          {/* Section 3: Word Bank (بنك الكلمات) */}
-          <section className="words-section">
-            <div className="words-header">
-              <h3 className="section-title" style={{ margin: 0 }}>
-                بنك الكلمات
-              </h3>
-              <span className="view-all-link" onClick={() => alert("فتح كامل بنك الكلمات")}>
-                عرض الكل ←
-              </span>
-            </div>
-
+        <section className="section-block">
+          <div className="words-header">
+            <h3 className="section-title" style={{ margin: 0 }}>بنك الكلمات</h3>
+            <span className="soft-text">{filteredWords.length} كلمة من القصص المعتمدة</span>
+          </div>
+          {filteredWords.length ? (
             <div className="words-row">
-              {wordBank.map((item) => (
+              {filteredWords.map((item) => (
                 <div className="word-card" key={item.id}>
-                  {/* Speaker action */}
-                  <button
-                    className="word-speaker-btn"
-                    onClick={() => playAudio(item.word)}
-                    title="استمع للنطق"
-                  >
+                  <button className="word-action word-speaker" onClick={() => playAudio(item.word)} title="استمع للنطق">
                     <i className="fa-solid fa-volume-high"></i>
                   </button>
-
-                  {/* Favorite Toggle action */}
                   <button
-                    className={`word-fav-btn ${favorites[item.word] ? "active" : ""}`}
+                    className={`word-action word-fav ${favorites[item.word] ? "active" : ""}`}
                     onClick={() => toggleFavorite(item.word)}
-                    title={favorites[item.word] ? "أزل من المفضلة" : "أضف للمفضلة"}
+                    title={favorites[item.word] ? "إزالة من المفضلة" : "إضافة للمفضلة"}
                   >
                     <i className="fa-solid fa-heart"></i>
                   </button>
-
-                  <span className="word-phonetic">{item.word}</span>
-                  <span className="word-tifinagh">{item.tifinagh}</span>
-                  <span className="word-translation">{item.arabic}</span>
-
-                  {/* Micro audio feedback simulation */}
+                  <span className="word-main">{item.word}</span>
+                  <span className="word-translation">{item.translation || item.arabic || "بدون ترجمة"}</span>
+                  <span className="word-story">{item.storyTitle}</span>
                   {playingWord === item.word && (
                     <div className="audio-wave">
                       <div className="audio-bar"></div>
@@ -1210,132 +899,136 @@ const EducationalJourney = ({ onBack, onLogout }) => {
                 </div>
               ))}
             </div>
-          </section>
+          ) : (
+            <div className="empty-state">لا توجد كلمات مطابقة. أضف كلمات في قصص المعلمين المعتمدة لتظهر هنا.</div>
+          )}
+        </section>
 
-          {/* Section 4: Achieved Badges (الأوسمة المحققة) */}
-          <section className="badges-section">
-            <h3 className="section-title">الأوسمة المحققة</h3>
-            <div className="badges-row">
-              {badges.map((badge) => {
-                const [hovered, setHovered] = useState(false);
-                return (
-                  <div
-                    className={`badge-item ${badge.active ? "" : "locked"}`}
-                    key={badge.id}
-                    onMouseEnter={() => setHovered(true)}
-                    onMouseLeave={() => setHovered(false)}
-                  >
-                    <div className={`badge-circle ${badge.type}`}>
-                      <i className={`fa-solid ${badge.icon}`}></i>
+        <section className="section-block">
+          <h3 className="section-title">الأوسمة المحققة</h3>
+          <div className="badges-row">
+            {journey.badges?.map((badge) => (
+              <div className={`badge-item ${badge.active ? "" : "locked"}`} key={badge.id}>
+                <div className={`badge-circle ${badge.active ? badge.type : ""}`}>
+                  <i className={`fa-solid ${badge.active ? badge.icon : "fa-lock"}`}></i>
+                </div>
+                <span className="badge-name">{badge.title}</span>
+                <span className="badge-desc">{badge.desc}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="section-block">
+          <h3 className="section-title">الاختبارات المتاحة</h3>
+          {journey.quizzes?.length ? (
+            <div className="quiz-grid">
+              {journey.quizzes.map((quiz) => (
+                <div className="quiz-card" key={quiz.id}>
+                  <img src={getMediaUrl(quiz.thumbnail || quiz.story?.coverImage)} alt={quiz.title} />
+                  <div className="quiz-body">
+                    <span className="quiz-reward">
+                      <i className="fa-solid fa-award"></i>
+                      {quiz.xpReward || 0} XP
+                    </span>
+                    <h4 className="card-title">{quiz.title}</h4>
+                    <div className="card-meta">
+                      <span>{quiz.questionsCount} أسئلة</span>
+                      <span>{quiz.level || quiz.story?.level || "غير محدد"}</span>
                     </div>
-                    <span className="badge-name">{badge.title}</span>
-
-                    {/* Tooltip Description */}
-                    {hovered && <div className="badge-tooltip">{badge.desc}</div>}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* Section 5: Completed Library (المكتبة المكتملة) */}
-          <section className="completed-section">
-            <h3 className="section-title">المكتبة المكتملة</h3>
-            <div className="completed-grid">
-              {/* Ancestors Tales */}
-              <div className="completed-card">
-                <div className="completed-left">
-                  <h4 className="completed-title">حكايات الأجداد</h4>
-                  <span className="completed-date">تم الإكمال في: 12 أكتوبر</span>
-                  <div className="completed-actions">
-                    <span className="link-re-read" onClick={() => alert("إعادة تحميل قصة حكايات الأجداد")}>
-                      إعادة القراءة
-                    </span>
-                    <button className="btn-take-test" onClick={() => alert("بدء اختبار حكايات الأجداد")}>
-                      إجراء اختبار
+                    <p className="soft-text">{quiz.story?.title ? `مرتبط بقصة: ${quiz.story.title}` : "اختبار عام"}</p>
+                    <button className="primary-btn" onClick={() => setActiveItem({ type: "quiz", ...quiz })}>
+                      عرض الاختبار
                     </button>
                   </div>
                 </div>
-                <div className="completed-img-wrapper">
-                  <img
-                    src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&auto=format&fit=crop&q=80"
-                    alt="Ancestors Tales"
-                  />
-                  <div className="check-badge">
-                    <i className="fa-solid fa-check"></i>
-                  </div>
-                </div>
-              </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">لا توجد اختبارات معتمدة حاليا. ستظهر هنا بعد موافقة الإدارة عليها.</div>
+          )}
+        </section>
 
-              {/* Desert Journey */}
-              <div className="completed-card">
-                <div className="completed-left">
-                  <h4 className="completed-title">رحلة في الصحراء</h4>
-                  <span className="completed-date">تم الإكمال في: 5 أكتوبر</span>
-                  <div className="completed-actions">
-                    <span className="link-re-read" onClick={() => alert("إعادة تحميل قصة رحلة في الصحراء")}>
+        <section className="section-block">
+          <h3 className="section-title">المكتبة المكتملة</h3>
+          {journey.completedStories?.length ? (
+            <div className="cards-grid">
+              {journey.completedStories.map((story) => (
+                <div className="data-card" key={story.id}>
+                  <img className="card-image" src={getMediaUrl(story.coverImage)} alt={story.title} />
+                  <div className="card-body">
+                    <h4 className="card-title">{story.title}</h4>
+                    <div className="card-meta">
+                      <span>تم الإكمال في: {formatDate(story.completedAt)}</span>
+                      <span>{story.xp} XP</span>
+                    </div>
+                    <button className="primary-btn" onClick={() => setActiveItem({ type: "completed", ...story })}>
                       إعادة القراءة
-                    </span>
-                    <button className="btn-take-test" onClick={() => alert("بدء اختبار رحلة في الصحراء")}>
-                      إجراء اختبار
                     </button>
                   </div>
                 </div>
-                <div className="completed-img-wrapper">
-                  <img
-                    src="https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=300&auto=format&fit=crop&q=80"
-                    alt="Desert Journey"
-                  />
-                  <div className="check-badge">
-                    <i className="fa-solid fa-check"></i>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
-          </section>
-        </div>
+          ) : (
+            <div className="empty-state">لم يتم تسجيل قصص مكتملة بعد. عند حفظ تقدم الطالب ستظهر هنا تلقائيا.</div>
+          )}
+        </section>
+      </div>
 
-      {/* Interactive popups for Controls */}
-      {showNotification && (
-        <div className="toast-popup" onClick={() => setShowNotification(false)}>
-          <i className="fa-solid fa-circle-info"></i>
-          <span>لديك 3 تنبيهات جديدة! تم تحديث بنك الكلمات اليوم.</span>
-        </div>
-      )}
-
-      {showSettings && (
-        <div className="toast-popup" onClick={() => setShowSettings(false)}>
-          <i className="fa-solid fa-circle-check"></i>
-          <span>تم تحميل إعدادات رحلتك التعليمية بنجاح!</span>
-        </div>
-      )}
-
-      {/* Resuming Modal Simulation */}
-      {activeStory && (
-        <div className="story-modal-overlay" onClick={() => setActiveStory(null)}>
-          <div className="story-modal-card" onClick={(e) => e.stopPropagation()}>
+      {activeItem && (
+        <div className="story-modal-overlay" onClick={() => setActiveItem(null)}>
+          <div className="story-modal-card" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header-img">
-              <img src={activeStory.img} alt={activeStory.title} />
-              <button className="modal-close-btn" onClick={() => setActiveStory(null)}>
+              <img src={getMediaUrl(activeItem.coverImage || activeItem.thumbnail || activeItem.story?.coverImage)} alt={activeItem.title} />
+              <button className="modal-close-btn" onClick={() => setActiveItem(null)}>
                 <i className="fa-solid fa-xmark"></i>
               </button>
             </div>
             <div className="modal-body">
-              <h3 className="modal-title">{activeStory.title}</h3>
+              <h3 className="modal-title">{activeItem.title}</h3>
               <p className="modal-text">
-                أنت مستعد لاستكمال القراءة من <strong>{activeStory.progress}</strong> بمستوى <strong>({activeStory.level})</strong>.
-                استمر في تقدمك لتحصل على المزيد من الأوسمة والنقاط!
+                {activeItem.type === "quiz"
+                  ? `هذا اختبار حقيقي معتمد يحتوي على ${activeItem.questionsCount} أسئلة ومكافأة ${activeItem.xpReward || 0} XP.`
+                  : `تقدمك الحالي في هذه القصة هو ${activeItem.progress || completedPercent}% من المسار التعليمي.`}
               </p>
-              <button
-                className="btn-modal-action"
-                onClick={() => {
-                  alert(`مرحباً بك مجدداً في "${activeStory.title}"!`);
-                  setActiveStory(null);
-                }}
-              >
-                استئناف الآن
+              {activeItem.type === "quiz" && (
+                <div className="modal-questions">
+                  {(activeItem.questions || []).map((question, index) => (
+                    <div className="modal-question" key={question.id}>
+                      <p className="modal-question-title">{index + 1}. {question.text}</p>
+                      {question.options?.length > 0 && (
+                        <div className="modal-options">
+                          {question.options.map((option) => (
+                            <span className="modal-option" key={option}>{option}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button className="primary-btn" onClick={() => setActiveItem(null)}>
+                حسنا
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {earnedBadges.length > 0 && (
+        <div className="earned-badge-overlay" onClick={() => setEarnedBadges([])}>
+          <div className="earned-badge-card" onClick={(event) => event.stopPropagation()}>
+            <div className={`earned-badge-icon ${earnedBadges[0].type || ""}`}>
+              <i className={`fa-solid ${earnedBadges[0].icon || "fa-award"}`}></i>
+            </div>
+            <h3 className="earned-badge-title">وسام جديد!</h3>
+            <p className="earned-badge-text">
+              لقد حصلت على وسام <strong>{earnedBadges[0].title}</strong>.
+              {earnedBadges.length > 1 ? ` ومعه ${earnedBadges.length - 1} أوسمة أخرى.` : ""}
+            </p>
+            <button className="primary-btn" onClick={() => setEarnedBadges([])}>
+              رائع
+            </button>
           </div>
         </div>
       )}

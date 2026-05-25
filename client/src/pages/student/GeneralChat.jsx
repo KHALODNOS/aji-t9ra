@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import api from "../../services/api";
+import { publishStudentRewards } from "../../utils/studentRewards";
 
 const GeneralChat = ({ onBack, onLogout }) => {
   // State management
@@ -117,6 +119,9 @@ const GeneralChat = ({ onBack, onLogout }) => {
     setMessages(prev => [...prev, newMsg]);
     const originalText = inputVal;
     setInputVal("");
+    api.post("/student/journey/activity", { type: "general_chat_message" })
+      .then((response) => publishStudentRewards({ earnedBadges: response.data?.earnedBadges || [] }))
+      .catch((error) => console.error("Error recording chat activity:", error));
 
     // Simulate online reply
     setIsTyping(true);

@@ -1,102 +1,107 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import api from "../../services/api";
 
-const Leaderboard = ({ onBack, onLogout }) => {
-  // State management
-  const [activeTab, setActiveTab] = useState("لوحة الصدارة");
-  const [selectedPath, setSelectedPath] = useState("مسار التيفيناغ");
-  const [timeRange, setTimeRange] = useState("أسبوعي");
+const FALLBACK_AVATAR = "avatar.png";
 
-  // User XP and Rank state
-  const [userXP, setUserXP] = useState(1250);
-  const [userRank, setUserRank] = useState(42);
+const getMediaUrl = (path) => {
+  if (!path) return FALLBACK_AVATAR;
+  if (path.startsWith("http")) return path;
+  return `http://localhost:5000/${path.replace(/\\/g, "/")}`;
+};
 
-  // Fast challenge modal states
-  const [showChallengeModal, setShowChallengeModal] = useState(false);
-  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [showSuccessScreen, setShowSuccessScreen] = useState(false);
+const levelLabels = {
+  Beginner: "مبتدئ",
+  Intermediate: "متوسط",
+  Advanced: "متقدم",
+};
 
-  // Competitor data by path matching screenshot
-  const competitorsData = {
-    "مسار التيفيناغ": {
-      podium: {
-        first: { name: "أحمد بن محمد", xp: 5250, avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80" },
-        second: { name: "ليلى الذكية", xp: 4800, avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80" },
-        third: { name: "ياسين الفارس", xp: 4550, avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&auto=format&fit=crop&q=80" }
-      },
-      list: [
-        { rank: 4, name: "سارة العلي", xp: 4200, trend: "+2", trendClass: "green", avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&auto=format&fit=crop&q=80" },
-        { rank: 5, name: "عمر الفاروق", xp: 4050, trend: "-1", trendClass: "red", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80" },
-        { rank: 7, name: "خالد العبيدي", xp: 3750, trend: "0", trendClass: "grey", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80" }
-      ]
-    },
-    "مسار الإنجليزية": {
-      podium: {
-        first: { name: "مريم فوزي", xp: 6100, avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80" },
-        second: { name: "خالد علام", xp: 5800, avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80" },
-        third: { name: "هدى عاصم", xp: 5500, avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80" }
-      },
-      list: [
-        { rank: 4, name: "يوسف خليل", xp: 5200, trend: "+1", trendClass: "green", avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&auto=format&fit=crop&q=80" },
-        { rank: 5, name: "دينا رامي", xp: 5050, trend: "0", trendClass: "grey", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80" },
-        { rank: 6, name: "بدر عثمان", xp: 4900, trend: "+3", trendClass: "green", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80" }
-      ]
-    },
-    "مسار الفرنسية": {
-      podium: {
-        first: { name: "سامي منصور", xp: 4950, avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&auto=format&fit=crop&q=80" },
-        second: { name: "نهى الجميل", xp: 4600, avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=120&auto=format&fit=crop&q=80" },
-        third: { name: "أمير كريم", xp: 4300, avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&auto=format&fit=crop&q=80" }
-      },
-      list: [
-        { rank: 4, name: "زينب نور", xp: 4100, trend: "-2", trendClass: "red", avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&auto=format&fit=crop&q=80" },
-        { rank: 5, name: "كمال وحيد", xp: 3950, trend: "+1", trendClass: "green", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80" },
-        { rank: 6, name: "سلوى عماد", xp: 3800, trend: "0", trendClass: "grey", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80" }
-      ]
+const medalConfig = {
+  1: { className: "gold", icon: "fa-crown", label: "المركز الأول" },
+  2: { className: "silver", icon: "fa-medal", label: "المركز الثاني" },
+  3: { className: "bronze", icon: "fa-award", label: "المركز الثالث" },
+};
+
+const Leaderboard = () => {
+  const [leaderboard, setLeaderboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [highlightXp, setHighlightXp] = useState(null);
+
+  const fetchLeaderboard = async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
+    setError("");
+    try {
+      const response = await api.get("/student/journey/leaderboard");
+      setLeaderboard(response.data);
+    } catch (err) {
+      console.error("Error loading leaderboard:", err);
+      setError(err.response?.data?.message || "تعذر تحميل لوحة الصدارة.");
+    } finally {
+      if (!quiet) setLoading(false);
     }
   };
 
-  // Mini quiz questions for Tifinagh challenge
-  const quizQuestions = [
-    {
-      q: "ما هو الحرف المقابل لرمز التيفيناغ 'ⵣ'؟",
-      options: ["حرف الياء", "حرف الزاي (الـ Yaz)", "حرف الميم", "حرف الراء"],
-      correctIdx: 1
-    },
-    {
-      q: "كيف تكتب كلمة 'أغرم' (Aghrum - الخبز) بالتيفيناغ؟",
-      options: ["ⴰⵖⵔⵓⵎ", "ⵜⴰⴼⵓⴽⵜ", "ⵉⵜⵔⵉ", "ⴰⵎⴰⵏ"],
-      correctIdx: 0
-    },
-    {
-      q: "أي من الرموز التالية يمثل حرف السين 'ⵙ'؟",
-      options: ["ⴹ", "ⵜ", "ⵙ", "ⴼ"],
-      correctIdx: 2
-    }
-  ];
+  useEffect(() => {
+    fetchLeaderboard();
+  }, []);
 
-  // Answer handler
-  const handleAnswerSubmit = (idx) => {
-    setSelectedAnswer(idx);
-    setTimeout(() => {
-      if (idx === quizQuestions[currentQuestionIdx].correctIdx) {
-        if (currentQuestionIdx < quizQuestions.length - 1) {
-          setCurrentQuestionIdx(prev => prev + 1);
-          setSelectedAnswer(null);
-        } else {
-          // Success challenge completion!
-          setUserXP(prev => prev + 150);
-          setUserRank(35); // Rank boosts from 42 to 35!
-          setShowSuccessScreen(true);
-        }
-      } else {
-        alert("إجابة خاطئة! حاول التركيز مرة أخرى.");
-        setSelectedAnswer(null);
-      }
-    }, 1000);
-  };
+  useEffect(() => {
+    const handleXpReward = (event) => {
+      const amount = Number(event.detail?.xpAwarded) || 0;
+      if (!amount) return;
 
-  const activeData = competitorsData[selectedPath];
+      setHighlightXp(amount);
+      window.clearTimeout(handleXpReward.timeoutId);
+      handleXpReward.timeoutId = window.setTimeout(() => setHighlightXp(null), 2200);
+      window.setTimeout(() => fetchLeaderboard({ quiet: true }), 450);
+    };
+
+    window.addEventListener("studentXpReward", handleXpReward);
+    return () => {
+      window.removeEventListener("studentXpReward", handleXpReward);
+      window.clearTimeout(handleXpReward.timeoutId);
+    };
+  }, []);
+
+  const allRows = useMemo(() => {
+    const top = leaderboard?.topThree || [];
+    const entries = leaderboard?.entries || [];
+    return [...top, ...entries];
+  }, [leaderboard]);
+
+  const filteredRows = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    if (!q) return allRows;
+    return allRows.filter((student) =>
+      [student.name, student.targetLanguage, student.level]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(q))
+    );
+  }, [allRows, searchText]);
+
+  const podium = leaderboard?.topThree || [];
+  const orderedPodium = [podium[1], podium[0], podium[2]].filter(Boolean);
+  const listRows = searchText ? filteredRows : (leaderboard?.entries || []);
+  const currentUser = leaderboard?.currentUser;
+
+  if (loading) {
+    return (
+      <div className="leaderboard-state" dir="rtl">
+        <i className="fa-solid fa-circle-notch fa-spin"></i>
+        <span>جاري تحميل لوحة الصدارة الحقيقية...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="leaderboard-state error" dir="rtl">
+        <i className="fa-solid fa-triangle-exclamation"></i>
+        <span>{error}</span>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -104,1013 +109,461 @@ const Leaderboard = ({ onBack, onLogout }) => {
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
 
-        :root {
-          --bg-light: #fefef9; /* Warm luxury ivory tone matching screenshot */
-          --sidebar-bg: #ffffff;
-          --primary-blue: #00458b; /* Main Deep Blue */
-          --primary-blue-dark: #002d5c;
-          --primary-yellow: #f9c851; /* Main Gold Yellow */
-          --primary-yellow-hover: #e5b23d;
-          --text-main: #1d1d1d;
-          --text-muted: #7d8b9b;
-          --border-color: #f1ebd9;
-          --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.015);
-          --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.03);
-        }
-
-        * {
-          box-sizing: border-box;
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body {
-          margin: 0;
+        .leaderboard-page {
+          direction: rtl;
           font-family: 'Tajawal', sans-serif;
-          background: var(--bg-light);
-          direction: rtl;
-          color: var(--text-main);
+          color: #172033;
+          padding-bottom: 92px;
         }
 
-        .leaderboard-container {
-          display: flex;
-          width: 100%;
-          min-height: 100vh;
-          background: var(--bg-light);
-          direction: rtl;
-        }
-
-        /* Sidebar RTL */
-        .sidebar {
-          width: 300px;
-          background: var(--sidebar-bg);
-          border-left: 1px solid #f2f5f9;
-          display: flex;
-          flex-direction: column;
-          padding: 30px 0;
-          flex-shrink: 0;
-          box-shadow: -4px 0 20px rgba(0, 0, 0, 0.01);
-        }
-
-        .sidebar-brand-header {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          margin-bottom: 30px;
-          padding: 0 20px;
-          text-align: center;
-        }
-
-        .sidebar-brand-title {
-          font-size: 1.4rem;
-          font-weight: 900;
-          color: var(--primary-blue);
-          margin: 0;
-        }
-
-        .sidebar-brand-subtitle {
-          font-size: 0.8rem;
-          color: #94a3b8;
-          font-weight: 700;
-          margin-top: 4px;
-        }
-
-        .nav-list {
-          list-style: none;
-          padding: 0 15px;
-          margin: 0;
-          flex-grow: 1;
-        }
-
-        .nav-item-wrapper {
-          margin-bottom: 5px;
-        }
-
-        .nav-link {
+        .leaderboard-state {
+          min-height: 420px;
           display: flex;
           align-items: center;
-          gap: 15px;
-          padding: 12px 20px;
-          text-decoration: none;
-          color: #64748b;
-          font-weight: 700;
-          cursor: pointer;
-          border-radius: 14px;
-          font-size: 0.95rem;
-        }
-
-        .nav-link:hover {
-          background: #f8fafc;
-          color: var(--primary-blue);
-        }
-
-        .nav-link.active {
-          background: #eef5fc;
-          color: var(--primary-blue);
-          border-right: 4px solid var(--primary-blue);
-          border-radius: 0 14px 14px 0;
-        }
-
-        .nav-link i {
-          font-size: 1.15rem;
-          width: 24px;
-          text-align: center;
-        }
-
-        /* Main Wrapper */
-        .main-wrapper {
-          flex-grow: 1;
-          display: flex;
-          flex-direction: column;
-          overflow-y: auto;
-          height: 100vh;
-          padding-bottom: 90px; /* Space for sticky user bar */
-        }
-
-        /* Topbar styling */
-        .topbar {
-          padding: 20px 40px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-bottom: 1px solid #f8f6f0;
-          background: var(--bg-light);
-          flex-shrink: 0;
-        }
-
-        .topbar-right-logo {
-          display: flex;
-          align-items: center;
-          gap: 30px;
-        }
-
-        .brand-logo-text {
-          font-size: 1.6rem;
-          font-weight: 950;
-          color: var(--primary-blue);
-          margin: 0;
-        }
-
-        .topbar-nav-tabs {
-          display: flex;
-          gap: 25px;
-        }
-
-        .topbar-tab-link {
-          font-size: 0.95rem;
-          font-weight: 800;
-          color: #64748b;
-          cursor: pointer;
-          padding-bottom: 6px;
-          position: relative;
-        }
-
-        .topbar-tab-link.active {
-          color: var(--primary-blue);
-        }
-
-        .topbar-tab-link.active::after {
-          content: "";
-          position: absolute;
-          bottom: -22px;
-          left: 0;
-          right: 0;
-          height: 4px;
-          background: var(--primary-blue);
-          border-radius: 2px 2px 0 0;
-        }
-
-        .topbar-left-profile {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .student-profile-avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          overflow: hidden;
-          border: 1.5px solid #cbd5e1;
-          cursor: pointer;
-        }
-
-        .student-profile-avatar img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .topbar-icons {
-          display: flex;
-          gap: 15px;
-          font-size: 1.25rem;
-          color: #64748b;
-        }
-
-        .topbar-icons i {
-          cursor: pointer;
-        }
-
-        .topbar-icons i:hover {
-          color: var(--primary-blue);
-        }
-
-        /* Content Area */
-        .content-area {
-          padding: 30px 40px;
-        }
-
-        /* Filter header row */
-        .leaderboard-filters-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 40px;
-        }
-
-        .path-pills-row {
-          display: flex;
-          background: #f1f5f9;
-          padding: 4px;
-          border-radius: 14px;
-          gap: 5px;
-        }
-
-        .path-pill-btn {
-          border: none;
-          background: transparent;
-          padding: 10px 24px;
-          border-radius: 10px;
-          font-family: inherit;
-          font-size: 0.85rem;
-          font-weight: 800;
-          color: #64748b;
-          cursor: pointer;
-        }
-
-        .path-pill-btn.active {
-          background: var(--primary-blue);
-          color: #ffffff;
-          box-shadow: 0 4px 15px rgba(0, 69, 139, 0.15);
-        }
-
-        .left-time-filters {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .dropdown-select-time {
-          border: 1px solid #cbd5e1;
-          background: #ffffff;
-          border-radius: 12px;
-          padding: 8px 15px;
-          font-family: inherit;
-          font-size: 0.8rem;
-          font-weight: 700;
-          color: #475569;
-          outline: none;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .grey-flower-decor {
-          font-size: 3rem;
-          color: #cbd5e1;
-          opacity: 0.6;
-        }
-
-        /* Podium Top 3 Section */
-        .podium-container {
-          display: flex;
           justify-content: center;
-          align-items: flex-end;
-          gap: 30px;
-          margin-bottom: 50px;
-          padding: 0 50px;
+          gap: 12px;
+          color: #00458b;
+          font-family: 'Tajawal', sans-serif;
+          font-weight: 900;
+        }
+
+        .leaderboard-state.error {
+          color: #b91c1c;
+        }
+
+        .leaderboard-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: end;
+          gap: 20px;
+          margin-bottom: 28px;
+        }
+
+        .leaderboard-title {
+          margin: 0;
+          color: #00458b;
+          font-size: 1.85rem;
+          font-weight: 900;
+        }
+
+        .leaderboard-subtitle {
+          margin: 7px 0 0;
+          color: #64748b;
+          font-size: 0.93rem;
+          font-weight: 700;
+        }
+
+        .leaderboard-search {
+          position: relative;
+          width: min(360px, 100%);
+        }
+
+        .leaderboard-search i {
+          position: absolute;
+          left: 15px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #94a3b8;
+        }
+
+        .leaderboard-search input {
+          width: 100%;
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+          border-radius: 16px;
+          padding: 12px 16px 12px 42px;
+          font-family: inherit;
+          font-weight: 800;
+          outline: none;
+        }
+
+        .leaderboard-summary {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 16px;
+          margin-bottom: 34px;
+        }
+
+        .summary-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 22px;
+          padding: 18px;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+        }
+
+        .summary-label {
+          display: block;
+          color: #64748b;
+          font-size: 0.76rem;
+          font-weight: 900;
+          margin-bottom: 8px;
+        }
+
+        .summary-value {
+          color: #00458b;
+          font-size: 1.35rem;
+          font-weight: 900;
+        }
+
+        .podium-container {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          align-items: end;
+          gap: 22px;
+          margin-bottom: 34px;
         }
 
         .podium-card {
           background: #ffffff;
-          border-radius: 28px;
-          border: 1px solid rgba(241, 235, 217, 0.35);
-          box-shadow: var(--shadow-sm);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
+          border: 1px solid #e2e8f0;
+          border-radius: 26px;
           padding: 24px;
+          text-align: center;
+          box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
           position: relative;
         }
 
-        /* Podium Ranks sizes */
-        .podium-card.first {
-          width: 250px;
-          min-height: 310px;
-          border-color: rgba(249, 200, 81, 0.4);
-          z-index: 2;
-          box-shadow: var(--shadow-md);
+        .podium-card.rank-1 {
+          min-height: 305px;
+          border-color: rgba(249, 200, 81, 0.55);
+          box-shadow: 0 18px 44px rgba(249, 200, 81, 0.16);
         }
 
-        .podium-card.second {
-          width: 220px;
-          min-height: 260px;
-          z-index: 1;
-        }
+        .podium-card.rank-2 { min-height: 265px; }
+        .podium-card.rank-3 { min-height: 245px; }
 
-        .podium-card.third {
-          width: 220px;
-          min-height: 240px;
-          z-index: 1;
-        }
-
-        /* Ribbon Medals */
-        .podium-hanging-medal {
+        .podium-medal {
           position: absolute;
-          top: -20px;
-          font-size: 2.2rem;
-          color: #f59e0b;
-          animation: swing 3s infinite ease-in-out;
-        }
-
-        @keyframes swing {
-          0%, 100% { transform: rotate(-5deg); }
-          50% { transform: rotate(5deg); }
-        }
-
-        .avatar-podium-wrapper {
-          position: relative;
-          width: 90px;
-          height: 90px;
-          margin-bottom: 15px;
-        }
-
-        .podium-card.first .avatar-podium-wrapper {
-          width: 110px;
-          height: 110px;
-        }
-
-        .avatar-podium-img {
-          width: 100%;
-          height: 100%;
+          top: 16px;
+          right: 16px;
+          width: 38px;
+          height: 38px;
           border-radius: 50%;
-          overflow: hidden;
-          border: 3px solid #ffffff;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.06);
-        }
-
-        .avatar-podium-img img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        /* Laurel/Crown badges overlay */
-        .medal-badge-overlay {
-          position: absolute;
-          top: 0;
-          right: 0;
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1rem;
-          border: 2px solid #ffffff;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .medal-badge-overlay.gold { background: #f9c851; color: #78350f; }
-        .medal-badge-overlay.silver { background: #cbd5e1; color: #475569; }
-        .medal-badge-overlay.bronze { background: #ca8a04; color: #ffffff; }
-
-        .competitor-podium-name {
-          font-size: 0.95rem;
-          font-weight: 850;
-          color: var(--primary-blue);
-          margin: 0;
-        }
-
-        .podium-card.first .competitor-podium-name {
-          font-size: 1.1rem;
-        }
-
-        .xp-score-pill {
-          background: #fffbeb;
-          color: #d97706;
-          font-size: 0.8rem;
-          font-weight: 900;
-          padding: 6px 18px;
-          border-radius: 20px;
-          margin-top: 10px;
-          border: 1px solid #fef3c7;
-        }
-
-        .weekly-champion-tag {
-          background: #ecfdf5;
-          color: #059669;
-          font-size: 0.75rem;
-          font-weight: 800;
-          padding: 4px 12px;
-          border-radius: 8px;
-          margin-top: 15px;
-        }
-
-        /* Others competitors list (باقي المنافسين) */
-        .competitors-list-section {
-          background: #ffffff;
-          border-radius: 28px;
-          padding: 30px;
-          border: 1px solid rgba(241, 235, 217, 0.4);
-          box-shadow: var(--shadow-sm);
-          max-width: 900px;
-          margin: 0 auto;
-        }
-
-        .section-header-lbl {
-          font-size: 1rem;
-          font-weight: 800;
-          color: #94a3b8;
-          margin-bottom: 25px;
-        }
-
-        .competitors-list-flow {
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-        }
-
-        .competitor-list-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px 20px;
-          border-radius: 20px;
-          border: 1px solid #f8fafc;
-        }
-
-        .competitor-list-row:hover {
-          background: #fafaf9;
-          border-color: #cbd5e1;
-        }
-
-        .competitor-rank-and-name {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .rank-position-lbl {
-          font-size: 1.15rem;
-          font-weight: 900;
-          color: #94a3b8;
-          width: 30px;
-        }
-
-        .competitor-row-avatar {
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          overflow: hidden;
-          border: 1.5px solid #cbd5e1;
-        }
-
-        .competitor-row-avatar img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .competitor-row-name {
-          font-size: 0.95rem;
-          font-weight: 800;
-          color: #334155;
-        }
-
-        .competitor-score-trend {
-          display: flex;
-          align-items: center;
-          gap: 30px;
-        }
-
-        .competitor-trend-pill {
-          font-size: 0.8rem;
-          font-weight: 800;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          width: 60px;
-        }
-
-        .competitor-trend-pill.green { color: #22c55e; }
-        .competitor-trend-pill.red { color: #ef4444; }
-        .competitor-trend-pill.grey { color: #94a3b8; }
-
-        .competitor-row-xp-val {
-          font-size: 0.95rem;
-          font-weight: 900;
-          color: #475569;
-          width: 80px;
-          text-align: left;
-        }
-
-        /* 🏆 Sticky User Rank Status Bar */
-        .sticky-user-status-bar {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          background: #00458b;
+          display: grid;
+          place-items: center;
           color: #ffffff;
-          padding: 15px 40px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          z-index: 10;
-          box-shadow: 0 -8px 25px rgba(0, 69, 139, 0.15);
+          font-size: 1rem;
         }
 
-        .sticky-user-left-btn {
-          z-index: 1;
-        }
+        .podium-medal.gold { background: #f59e0b; color: #78350f; }
+        .podium-medal.silver { background: #cbd5e1; color: #475569; }
+        .podium-medal.bronze { background: #b45309; }
 
-        .btn-climb-rank {
-          background: #f9c851;
-          color: #4b3805;
-          border: none;
-          padding: 10px 24px;
-          border-radius: 14px;
-          font-weight: 900;
-          font-size: 0.9rem;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          box-shadow: 0 4px 15px rgba(249, 200, 81, 0.25);
-        }
-
-        .btn-climb-rank:hover {
-          background: #e5b23d;
-          transform: scale(1.02);
-        }
-
-        .sticky-user-center-info {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-        }
-
-        .sticky-user-avatar {
-          width: 36px;
-          height: 36px;
+        .podium-avatar {
+          width: 96px;
+          height: 96px;
           border-radius: 50%;
+          margin: 18px auto 14px;
           overflow: hidden;
-          border: 2px solid #ffffff;
+          border: 4px solid #f1f5f9;
         }
 
-        .sticky-user-avatar img {
+        .rank-1 .podium-avatar {
+          width: 116px;
+          height: 116px;
+          border-color: #f9c851;
+        }
+
+        .podium-avatar img,
+        .row-avatar img,
+        .sticky-avatar img {
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
 
-        .sticky-user-rank-val {
-          font-size: 1rem;
-          font-weight: 800;
-        }
-
-        .sticky-user-right-score {
-          font-size: 1.15rem;
-          font-weight: 900;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: #f9c851;
-        }
-
-        .divider-sticky {
-          width: 1px;
-          height: 30px;
-          background: rgba(255,255,255,0.15);
-          margin: 0 20px;
-        }
-
-        /* 🌟 Interactive Rank Booster challenge modal */
-        .challenge-modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.75);
-          backdrop-filter: blur(8px);
-          z-index: 100;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .challenge-modal-card {
-          background: #ffffff;
-          width: 500px;
-          border-radius: 28px;
-          padding: 35px;
-          box-shadow: 0 20px 50px rgba(0,0,0,0.25);
-          text-align: center;
-          animation: zoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes zoomIn {
-          from { transform: scale(0.9); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-
-        .challenge-title-row {
-          font-size: 1.3rem;
-          font-weight: 900;
-          color: var(--primary-blue);
-          margin-bottom: 10px;
-        }
-
-        .challenge-desc-lbl {
-          font-size: 0.85rem;
-          color: #64748b;
-          margin-bottom: 25px;
-          font-weight: 600;
-        }
-
-        .challenge-progress-dots {
-          display: flex;
-          justify-content: center;
-          gap: 8px;
-          margin-bottom: 25px;
-        }
-
-        .challenge-dot-step {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: #cbd5e1;
-        }
-
-        .challenge-dot-step.active {
-          background: var(--primary-blue);
-          width: 20px;
-          border-radius: 4px;
-        }
-
-        .challenge-dot-step.completed {
-          background: #22c55e;
-        }
-
-        .question-box-card {
-          background: #f8fafc;
-          border: 1px solid #cbd5e1;
-          border-radius: 20px;
-          padding: 24px;
-          margin-bottom: 25px;
-        }
-
-        .question-title-lbl {
+        .podium-name {
+          margin: 0 0 8px;
+          color: #00458b;
           font-size: 1.05rem;
           font-weight: 900;
-          color: #1e293b;
         }
 
-        .quiz-options-list {
+        .podium-xp {
+          display: inline-flex;
+          background: #fef3c7;
+          color: #b45309;
+          border: 1px solid #fde68a;
+          border-radius: 999px;
+          padding: 7px 14px;
+          font-weight: 900;
+          font-size: 0.85rem;
+        }
+
+        .podium-meta {
+          margin-top: 12px;
+          color: #64748b;
+          font-size: 0.78rem;
+          font-weight: 800;
+        }
+
+        .leaderboard-list {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 26px;
+          padding: 24px;
+          box-shadow: 0 12px 30px rgba(15, 23, 42, 0.045);
+        }
+
+        .section-title {
+          margin: 0 0 18px;
+          color: #172033;
+          font-size: 1.05rem;
+          font-weight: 900;
+        }
+
+        .leaderboard-row {
+          display: grid;
+          grid-template-columns: 64px 1fr auto;
+          align-items: center;
+          gap: 16px;
+          padding: 14px;
+          border: 1px solid #f1f5f9;
+          border-radius: 18px;
+          margin-bottom: 12px;
+        }
+
+        .leaderboard-row.current {
+          border-color: #f9c851;
+          background: #fffbeb;
+        }
+
+        .rank-number {
+          color: #94a3b8;
+          font-size: 1.1rem;
+          font-weight: 900;
+        }
+
+        .row-student {
           display: flex;
-          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+
+        .row-avatar {
+          width: 46px;
+          height: 46px;
+          border-radius: 50%;
+          overflow: hidden;
+          border: 2px solid #e2e8f0;
+          flex-shrink: 0;
+        }
+
+        .row-name {
+          display: block;
+          color: #172033;
+          font-weight: 900;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .row-meta {
+          display: block;
+          color: #64748b;
+          font-size: 0.76rem;
+          font-weight: 800;
+          margin-top: 3px;
+        }
+
+        .row-xp {
+          color: #00458b;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+
+        .empty-state {
+          border: 1px dashed #cbd5e1;
+          border-radius: 20px;
+          padding: 30px;
+          text-align: center;
+          color: #64748b;
+          font-weight: 900;
+        }
+
+        .sticky-rank-bar {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          z-index: 20;
+          background: #00458b;
+          color: #ffffff;
+          padding: 14px 34px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          box-shadow: 0 -10px 28px rgba(0, 69, 139, 0.2);
+        }
+
+        .sticky-user {
+          display: flex;
+          align-items: center;
           gap: 12px;
         }
 
-        .quiz-option-btn {
-          width: 100%;
-          background: #ffffff;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 14px;
-          padding: 12px 20px;
-          text-align: right;
-          font-family: inherit;
-          font-size: 0.85rem;
-          font-weight: 700;
-          color: #475569;
-          cursor: pointer;
+        .sticky-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          overflow: hidden;
+          border: 2px solid #ffffff;
         }
 
-        .quiz-option-btn:hover {
-          background: #f1f5f9;
-          border-color: #cbd5e1;
+        .sticky-rank {
+          font-weight: 900;
         }
 
-        .quiz-option-btn.selected {
-          border-color: var(--primary-blue);
-          background: #eff6ff;
-          color: var(--primary-blue);
-        }
-
-        .quiz-option-btn.correct {
-          border-color: #22c55e;
-          background: #ecfdf5;
-          color: #15803d;
-        }
-
-        /* Success animation card */
-        .celebration-panel {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 20px 0;
-        }
-
-        .celebrate-icon-box {
-          font-size: 4rem;
+        .sticky-xp {
           color: #f9c851;
-          animation: popCelebrate 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+          font-weight: 900;
+          font-size: 1.05rem;
+          display: flex;
+          align-items: center;
+          gap: 8px;
         }
 
-        @keyframes popCelebrate {
-          0% { transform: scale(0); }
+        .sticky-xp.bump {
+          animation: rank-xp-bump 0.8s ease both;
+        }
+
+        @keyframes rank-xp-bump {
+          0% { transform: scale(1); }
+          45% { transform: scale(1.08); }
           100% { transform: scale(1); }
         }
 
-        .celebrate-title {
-          font-size: 1.5rem;
-          font-weight: 900;
-          color: #15803d;
-          margin: 15px 0 10px 0;
+        @media (max-width: 960px) {
+          .leaderboard-summary, .podium-container {
+            grid-template-columns: 1fr;
+          }
+          .podium-card,
+          .podium-card.rank-1,
+          .podium-card.rank-2,
+          .podium-card.rank-3 {
+            min-height: auto;
+          }
         }
 
-        .btn-modal-close-final {
-          background: var(--primary-blue);
-          color: #ffffff;
-          border: none;
-          padding: 12px 40px;
-          border-radius: 14px;
-          font-weight: 800;
-          font-size: 0.9rem;
-          cursor: pointer;
-          margin-top: 20px;
-        }
-
-        @media (max-width: 1024px) {
-          .podium-container {
+        @media (max-width: 680px) {
+          .leaderboard-header {
             flex-direction: column;
-            align-items: center;
-            gap: 20px;
+            align-items: stretch;
           }
-          .podium-card {
-            width: 100% !important;
-            min-height: auto !important;
+          .leaderboard-row {
+            grid-template-columns: 44px 1fr;
           }
-          .leaderboard-filters-header {
+          .row-xp {
+            grid-column: 2;
+          }
+          .sticky-rank-bar {
             flex-direction: column;
-            gap: 20px;
+            align-items: stretch;
           }
         }
       `}</style>
 
-        {/* Content Area */}
-        <div className="content-area" style={{ padding: 0 }}>
-          {/* Filters header bar */}
-          <section className="leaderboard-filters-header">
-            {/* Paths selector Pills */}
-            <div className="path-pills-row">
-              {["مسار التيفيناغ", "مسار الإنجليزية", "مسار الفرنسية"].map((path) => (
-                <button
-                  key={path}
-                  className={`path-pill-btn ${selectedPath === path ? "active" : ""}`}
-                  onClick={() => setSelectedPath(path)}
-                >
-                  {path}
-                </button>
-              ))}
-            </div>
-
-            {/* Time filters & Flower ornament */}
-            <div className="left-time-filters">
-              <select
-                className="dropdown-select-time"
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-              >
-                <option value="أسبوعي">أسبوعي</option>
-                <option value="شهري">شهري</option>
-                <option value="سنوي">سنوي</option>
-              </select>
-
-              {/* Decorative Flower icon */}
-              <div className="grey-flower-decor">
-                <i className="fa-solid fa-spa"></i>
-              </div>
-            </div>
-          </section>
-
-          {/* Section 2: Top 3 Podium Winners list */}
-          <section className="podium-container">
-            {/* 2nd Place Winner (Right side) */}
-            <div className="podium-card second">
-              <div className="medal-badge-overlay silver">
-                <i className="fa-solid fa-medal"></i>
-              </div>
-              <div className="avatar-podium-wrapper">
-                <div className="avatar-podium-img">
-                  <img src={activeData.podium.second.avatar} alt="2nd place" />
-                </div>
-              </div>
-              <h4 className="competitor-podium-name">{activeData.podium.second.name}</h4>
-              <span className="xp-score-pill">{activeData.podium.second.xp} XP</span>
-            </div>
-
-            {/* 1st Place Winner (Center - Tallest) */}
-            <div className="podium-card first">
-              {/* Hanging golden medal ribbon */}
-              <div className="podium-hanging-medal">
-                <i className="fa-solid fa-ribbon"></i>
-              </div>
-              <div className="avatar-podium-wrapper">
-                <div className="avatar-podium-img" style={{ border: "4px solid #f9c851" }}>
-                  <img src={activeData.podium.first.avatar} alt="1st place" />
-                </div>
-                <div className="medal-badge-overlay gold">
-                  <i className="fa-solid fa-crown"></i>
-                </div>
-              </div>
-              <h3 className="competitor-podium-name">{activeData.podium.first.name}</h3>
-              <span className="xp-score-pill" style={{ background: "#fef3c7" }}>
-                {activeData.podium.first.xp} XP
-              </span>
-              <span className="weekly-champion-tag">بطل الأسبوع</span>
-            </div>
-
-            {/* 3rd Place Winner (Left side) */}
-            <div className="podium-card third">
-              <div className="medal-badge-overlay bronze">
-                <i className="fa-solid fa-award"></i>
-              </div>
-              <div className="avatar-podium-wrapper">
-                <div className="avatar-podium-img">
-                  <img src={activeData.podium.third.avatar} alt="3rd place" />
-                </div>
-              </div>
-              <h4 className="competitor-podium-name">{activeData.podium.third.name}</h4>
-              <span className="xp-score-pill">{activeData.podium.third.xp} XP</span>
-            </div>
-          </section>
-
-          {/* Section 3: Other Competitors list (باقي المنافسين) */}
-          <section className="competitors-list-section">
-            <span className="section-header-lbl">باقي المنافسين</span>
-
-            <div className="competitors-list-flow">
-              {activeData.list.map((competitor) => (
-                <div className="competitor-list-row" key={competitor.rank}>
-                  <div className="competitor-rank-and-name">
-                    <span className="rank-position-lbl">#{competitor.rank}</span>
-                    <div className="competitor-row-avatar">
-                      <img src={competitor.avatar} alt={competitor.name} />
-                    </div>
-                    <span className="competitor-row-name">{competitor.name}</span>
-                  </div>
-
-                  <div className="competitor-score-trend">
-                    <span className={`competitor-trend-pill ${competitor.trendClass}`}>
-                      {competitor.trend === "0" ? (
-                        <i className="fa-solid fa-minus"></i>
-                      ) : competitor.trendClass === "green" ? (
-                        <i className="fa-solid fa-circle-chevron-up"></i>
-                      ) : (
-                        <i className="fa-solid fa-circle-chevron-down"></i>
-                      )}
-                      <span>{competitor.trend}</span>
-                    </span>
-                    <span className="competitor-row-xp-val">{competitor.xp} XP</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-      {/* 🏆 Sticky User Current Status Bar */}
-      <footer className="sticky-user-status-bar">
-        <div className="sticky-user-left-btn">
-          <button className="btn-climb-rank" onClick={() => setShowChallengeModal(true)}>
-            <span>انطلق للمركز التالي</span>
-            <i className="fa-solid fa-bolt"></i>
-          </button>
-        </div>
-
-        <div className="sticky-user-center-info">
-          <div className="sticky-user-avatar">
-            <img
-              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80"
-              alt=" Ahmed Bennani Avatar"
+      <div className="leaderboard-page">
+        <header className="leaderboard-header">
+          <div>
+            <h2 className="leaderboard-title">لوحة الصدارة</h2>
+            <p className="leaderboard-subtitle">ترتيب حقيقي حسب نقاط XP التي يجمعها الطلاب من القصص، الاختبارات، الذكاء الاصطناعي والصالونات الصوتية.</p>
+          </div>
+          <div className="leaderboard-search">
+            <i className="fa-solid fa-magnifying-glass"></i>
+            <input
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              placeholder="ابحث عن طالب أو مستوى..."
             />
           </div>
-          <span className="sticky-user-rank-val">ترتيبك الحالي: #{userRank}</span>
-        </div>
+        </header>
 
-        <div className="sticky-user-right-score">
-          <i className="fa-solid fa-star"></i>
-          <span>نقاطك: {userXP} XP</span>
-        </div>
-      </footer>
+        <section className="leaderboard-summary">
+          <div className="summary-card">
+            <span className="summary-label">ترتيبك الحالي</span>
+            <span className="summary-value">#{currentUser?.rank || "-"}</span>
+          </div>
+          <div className="summary-card">
+            <span className="summary-label">نقاطك</span>
+            <span className="summary-value">{currentUser?.xp || 0} XP</span>
+          </div>
+          <div className="summary-card">
+            <span className="summary-label">عدد الطلاب</span>
+            <span className="summary-value">{leaderboard?.totalStudents || 0}</span>
+          </div>
+          <div className="summary-card">
+            <span className="summary-label">قصصك المكتملة</span>
+            <span className="summary-value">{currentUser?.completedStoriesCount || 0}</span>
+          </div>
+        </section>
 
-      {/* 🌟 Interactive challenge quiz modal (WOW feature) */}
-      {showChallengeModal && (
-        <div className="challenge-modal-overlay">
-          <div className="challenge-modal-card">
-            {!showSuccessScreen ? (
-              <>
-                <h3 className="challenge-title-row">
-                  <i className="fa-solid fa-bolt" style={{ color: "#f9c851", marginLeft: "10px" }}></i>
-                  تحدي الارتقاء بالترتيب!
-                </h3>
-                <p className="challenge-desc-lbl">
-                  أجب عن 3 أسئلة صحيحة متتالية لكسب **+150 XP** والارتقاء إلى المركز #35!
-                </p>
+        {podium.length > 0 && !searchText && (
+          <section className="podium-container">
+            {orderedPodium.map((student) => {
+              const medal = medalConfig[student.rank] || medalConfig[3];
+              return (
+                <article className={`podium-card rank-${student.rank}`} key={student.id}>
+                  <div className={`podium-medal ${medal.className}`}>
+                    <i className={`fa-solid ${medal.icon}`}></i>
+                  </div>
+                  <div className="podium-avatar">
+                    <img src={getMediaUrl(student.avatar)} alt={student.name} />
+                  </div>
+                  <h3 className="podium-name">{student.name}</h3>
+                  <span className="podium-xp">{student.xp.toLocaleString("en-US")} XP</span>
+                  <div className="podium-meta">
+                    {medal.label} · {levelLabels[student.level] || student.level}
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+        )}
 
-                {/* Progress Indicators */}
-                <div className="challenge-progress-dots">
-                  {quizQuestions.map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={`challenge-dot-step ${
-                        idx === currentQuestionIdx
-                          ? "active"
-                          : idx < currentQuestionIdx
-                          ? "completed"
-                          : ""
-                      }`}
-                    ></div>
-                  ))}
-                </div>
-
-                {/* Active Question Box */}
-                <div className="question-box-card">
-                  <h4 className="question-title-lbl" style={{ marginBottom: "20px" }}>
-                    {quizQuestions[currentQuestionIdx].q}
-                  </h4>
-
-                  <div className="quiz-options-list">
-                    {quizQuestions[currentQuestionIdx].options.map((opt, oIdx) => (
-                      <button
-                        key={oIdx}
-                        className={`quiz-option-btn ${
-                          selectedAnswer === oIdx
-                            ? oIdx === quizQuestions[currentQuestionIdx].correctIdx
-                              ? "correct"
-                              : "selected"
-                            : ""
-                        }`}
-                        onClick={() => handleAnswerSubmit(oIdx)}
-                      >
-                        {opt}
-                      </button>
-                    ))}
+        <section className="leaderboard-list">
+          <h3 className="section-title">{searchText ? "نتائج البحث" : "باقي المتنافسين"}</h3>
+          {listRows.length ? (
+            listRows.map((student) => (
+              <div className={`leaderboard-row ${student.isCurrentUser ? "current" : ""}`} key={student.id}>
+                <span className="rank-number">#{student.rank}</span>
+                <div className="row-student">
+                  <div className="row-avatar">
+                    <img src={getMediaUrl(student.avatar)} alt={student.name} />
+                  </div>
+                  <div>
+                    <span className="row-name">{student.name}</span>
+                    <span className="row-meta">
+                      {levelLabels[student.level] || student.level} · {student.completedStoriesCount || 0} قصص · {student.passedQuizzesCount || 0} اختبارات
+                    </span>
                   </div>
                 </div>
-
-                <button
-                  className="btn-cancel"
-                  style={{ width: "100%", padding: "12px" }}
-                  onClick={() => {
-                    setShowChallengeModal(false);
-                    setCurrentQuestionIdx(0);
-                    setSelectedAnswer(null);
-                  }}
-                >
-                  انسحاب
-                </button>
-              </>
-            ) : (
-              <div className="celebration-panel">
-                <div className="celebrate-icon-box">
-                  <i className="fa-solid fa-trophy"></i>
-                </div>
-                <h3 className="celebrate-title">عمل رائع ومتميز! 🌟</h3>
-                <p className="challenge-desc-lbl" style={{ margin: "10px 0 20px" }}>
-                  لقد حصلت على **+150 XP** وارتفع ترتيبك بنجاح من **#42** إلى **#35** في لوحة الصدارة!
-                </p>
-
-                <button
-                  className="btn-modal-close-final"
-                  onClick={() => {
-                    setShowChallengeModal(false);
-                    setShowSuccessScreen(false);
-                    setCurrentQuestionIdx(0);
-                    setSelectedAnswer(null);
-                  }}
-                >
-                  رائع! العودة للمنافسة
-                </button>
+                <span className="row-xp">{student.xp.toLocaleString("en-US")} XP</span>
               </div>
-            )}
+            ))
+          ) : (
+            <div className="empty-state">لا توجد نتائج مطابقة حالياً.</div>
+          )}
+        </section>
+      </div>
+
+      {currentUser && (
+        <footer className="sticky-rank-bar">
+          <div className="sticky-user">
+            <div className="sticky-avatar">
+              <img src={getMediaUrl(currentUser.avatar)} alt={currentUser.name} />
+            </div>
+            <span className="sticky-rank">ترتيبك الحالي: #{currentUser.rank}</span>
           </div>
-        </div>
+          <div className={`sticky-xp ${highlightXp ? "bump" : ""}`}>
+            <i className="fa-solid fa-star"></i>
+            <span>{currentUser.xp.toLocaleString("en-US")} XP</span>
+            {highlightXp ? <span>+{highlightXp}</span> : null}
+          </div>
+        </footer>
       )}
     </>
   );

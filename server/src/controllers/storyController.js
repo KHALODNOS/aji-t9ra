@@ -88,3 +88,12 @@ exports.getStoryById = async (req, res) => {
         res.status(500).json({ message: "Error fetching story", error: error.message });
     }
 };
+
+exports.getApprovedStories = async (req, res) => {
+    try {
+        const stories = await Story.find({ status: 'approved' }).populate('teacher', 'username fullName avatarUrl').sort({ createdAt: -1 });
+        res.status(200).json(stories);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching approved stories", error: error.message });
+    }
+};

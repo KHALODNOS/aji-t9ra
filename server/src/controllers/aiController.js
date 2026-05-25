@@ -5,6 +5,7 @@ const {
   retrieveRelevantChunks,
   generateStoryAnswer,
 } = require("../services/aiService");
+const { recordAiMessageReward } = require("./studentJourneyController");
 
 // Get AI Settings for a specific story
 exports.getStoryAISettings = async (req, res) => {
@@ -154,10 +155,18 @@ exports.chatWithStory = async (req, res) => {
       chatHistory: chatHistory || []
     });
 
+    const reward = (req.user.Role || "").toLowerCase() === "student"
+      ? await recordAiMessageReward(req.user._id)
+      : { xpAwarded: 0, totalXp: null, aiMessagesCount: 0, nextAiRewardIn: 0, earnedBadges: [] };
+
     res.status(200).json({
       answer,
       retrievedChunks: chunksToUse.map(c => c.chunkText),
-      xpAwarded: (story.personality && story.personality.xp) || 50
+      xpAwarded: reward.xpAwarded,
+      totalXp: reward.totalXp,
+      aiMessagesCount: reward.aiMessagesCount,
+      nextAiRewardIn: reward.nextAiRewardIn,
+      earnedBadges: reward.earnedBadges,
     });
   } catch (error) {
     console.error("Error in chatWithStory:", error);

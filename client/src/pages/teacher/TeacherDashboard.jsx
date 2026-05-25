@@ -5,7 +5,7 @@ import AddShortVideo from "./AddShortVideo";
 import AISettings from "./AISettings";
 import TestBank from "./TestBank";
 import AudioSalons from "./AudioSalons";
-import StudentTracking from "./StudentTracking";
+import Leaderboard from "./Leaderboard";
 import TeacherProfile from "./TeacherProfile";
 
 const TeacherDashboard = ({ onBack }) => {
@@ -145,7 +145,7 @@ const TeacherDashboard = ({ onBack }) => {
       case "salons":
         return <AudioSalons onHome={() => setActivePage("home")} />;
       case "students":
-        return <StudentTracking onHome={() => setActivePage("home")} />;
+        return <Leaderboard onHome={() => setActivePage("home")} />;
       case "profile":
         return <TeacherProfile onHome={() => setActivePage("home")} />;
       default:

@@ -3,8 +3,9 @@ import AgoraRTC from "agora-rtc-sdk-ng";
 import api from "../../services/api";
 import { useSocket } from "../../context/SocketContext";
 import toast from "react-hot-toast";
+import { publishStudentRewards } from "../../utils/studentRewards";
 
-const AudioSalons = () => {
+const AudioSalons = ({ allowCreate = true, studentMode = false }) => {
   const { socket } = useSocket();
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -308,7 +309,7 @@ const AudioSalons = () => {
 
     const loadingToast = toast.loading("جاري مغادرة الصالون...");
     try {
-      await api.post(`/voice-rooms/${joinedRoom._id}/leave`);
+      const response = await api.post(`/voice-rooms/${joinedRoom._id}/leave`);
       cleanupAgora();
 
       if (socket) {
@@ -319,6 +320,14 @@ const AudioSalons = () => {
       }
 
       toast.dismiss(loadingToast);
+      if (response.data?.xpAwarded) {
+        publishStudentRewards({
+          xpAwarded: response.data.xpAwarded,
+          totalXp: response.data.totalXp,
+          reason: "voice_salon",
+        });
+        toast.success(`+${response.data.xpAwarded} XP لممارسة الصالون الصوتي`, { icon: "⭐" });
+      }
       toast.success("تم مغادرة الصالون الصوتي بنجاح", { icon: "🚪" });
       setJoinedRoom(null);
       fetchActiveRooms();
@@ -557,7 +566,7 @@ const AudioSalons = () => {
           </h1>
         </div>
 
-        {!joinedRoom && currentUser?.Role === "teacher" && (
+        {!joinedRoom && allowCreate && currentUser?.Role === "teacher" && (
           <button
             onClick={() => {
               setCreateModalOpen(true);
@@ -1130,7 +1139,9 @@ const AudioSalons = () => {
                   لا توجد صالونات صوتية مفتوحة حالياً
                 </h4>
                 <p style={{ margin: 0, color: "#64748b", fontSize: "0.9rem", maxWidth: "450px", fontWeight: 700 }}>
-                  يرجى الانتظار لحين بدء صالون من أحد المعلمين، أو إذا كنت معلماً، يمكنك الضغط على زر "أنشئ صالوناً صوتياً" بالأعلى للبدء فوراً!
+                  {studentMode
+                    ? "يرجى الانتظار لحين بدء صالون من أحد المعلمين. ستظهر الغرف المفتوحة هنا مباشرة ويمكنك الانضمام إليها."
+                    : "يرجى الانتظار لحين بدء صالون من أحد المعلمين، أو إذا كنت معلماً، يمكنك الضغط على زر \"أنشئ صالوناً صوتياً\" بالأعلى للبدء فوراً!"}
                 </p>
               </div>
             ) : (
@@ -1239,7 +1250,7 @@ const AudioSalons = () => {
       )}
 
       {/* -------------------- STEP BY STEP ROOM CREATION MODAL -------------------- */}
-      {createModalOpen && (
+      {allowCreate && createModalOpen && (
         <div
           style={{
             position: "fixed",

@@ -15,6 +15,7 @@ const notificationSchema = new mongoose.Schema({
         enum: [
             "story_submitted", "story_approved", "story_rejected",
             "video_submitted", "video_approved", "video_rejected",
+            "video_comment",
             "exam_submitted", "exam_approved", "exam_rejected",
             "teacher_request", "system"
         ],
@@ -26,7 +27,8 @@ const notificationSchema = new mongoose.Schema({
     },
     data: {
         storyId: mongoose.Schema.Types.ObjectId,
-        contentId: mongoose.Schema.Types.ObjectId
+        contentId: mongoose.Schema.Types.ObjectId,
+        commentId: mongoose.Schema.Types.ObjectId
     },
     isRead: {
         type: Boolean,

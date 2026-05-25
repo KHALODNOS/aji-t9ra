@@ -24,6 +24,27 @@ const questionSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const commentSchema = new mongoose.Schema(
+  {
+    student: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    text: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 500,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: true }
+);
+
 const contentSchema = new mongoose.Schema(
   {
     title: {
@@ -77,6 +98,7 @@ const contentSchema = new mongoose.Schema(
       default: 150,
     },
     questions: [questionSchema],
+    comments: [commentSchema],
     createdAt: {
       type: Date,
       default: Date.now,

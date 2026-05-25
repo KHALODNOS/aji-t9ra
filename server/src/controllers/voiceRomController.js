@@ -1,6 +1,10 @@
 const { RtcTokenBuilder, RtcRole } = require('agora-token');
 const VoiceRoom = require('../models/VoiceRoom');
+const StudentProgress = require('../models/StudentProgress');
 const { getIO } = require('../utils/socket');
+
+const VOICE_SALON_MIN_SECONDS = 120;
+const VOICE_SALON_XP = 20;
 
 // Helper to generate Agora token
 const generateAgoraTokenHelper = (channelName, roleType) => {
@@ -17,6 +21,47 @@ const generateAgoraTokenHelper = (channelName, roleType) => {
     console.error("Error generating Agora token:", error);
     return { token: null, appId };
   }
+};
+
+const awardVoiceSalonXp = async ({ studentId, roomId, joinedAt }) => {
+  const startedAt = joinedAt ? new Date(joinedAt) : null;
+  const durationSeconds = startedAt && !Number.isNaN(startedAt.getTime())
+    ? Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 1000))
+    : 0;
+
+  if (durationSeconds < VOICE_SALON_MIN_SECONDS) {
+    return { xpAwarded: 0, durationSeconds };
+  }
+
+  const progress = await StudentProgress.findOneAndUpdate(
+    { student: studentId },
+    { $setOnInsert: { student: studentId } },
+    { new: true, upsert: true }
+  );
+  const sourceId = `${roomId}:${startedAt.getTime()}`;
+  const alreadyAwarded = (progress.xpEvents || []).some((event) => (
+    event.source === "voice_salon" && event.sourceId === sourceId
+  ));
+
+  if (alreadyAwarded) {
+    return { xpAwarded: 0, totalXp: progress.totalXp || 0, durationSeconds };
+  }
+
+  progress.totalXp = (progress.totalXp || 0) + VOICE_SALON_XP;
+  progress.xpEvents.push({
+    source: "voice_salon",
+    sourceId,
+    amount: VOICE_SALON_XP,
+    reason: "Voice salon practice",
+    createdAt: new Date(),
+  });
+  await progress.save();
+
+  return {
+    xpAwarded: VOICE_SALON_XP,
+    totalXp: progress.totalXp || 0,
+    durationSeconds,
+  };
 };
 
 // @desc    Generate Agora token directly for a channel
@@ -208,6 +253,7 @@ exports.leaveVoiceRoom = async (req, res) => {
     }
 
     const isHost = room.host.toString() === req.user._id.toString();
+    let reward = { xpAwarded: 0 };
 
     if (isHost) {
       // If host leaves, we deactivate the room
@@ -223,6 +269,15 @@ exports.leaveVoiceRoom = async (req, res) => {
         console.warn("Socket notification failed:", e.message);
       }
     } else {
+      const memberSession = room.members.find(m => m.user.toString() === req.user._id.toString());
+      if ((req.user.Role || "").toLowerCase() === "student" && memberSession) {
+        reward = await awardVoiceSalonXp({
+          studentId: req.user._id,
+          roomId: room._id,
+          joinedAt: memberSession.joinedAt,
+        });
+      }
+
       // Remove from members
       room.members = room.members.filter(m => m.user.toString() !== req.user._id.toString());
       await room.save();
@@ -247,6 +302,9 @@ exports.leaveVoiceRoom = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "تم مغادرة الغرفة بنجاح",
+      xpAwarded: reward.xpAwarded || 0,
+      totalXp: reward.totalXp,
+      durationSeconds: reward.durationSeconds,
     });
   } catch (error) {
     console.error("Error leaving voice room:", error);

@@ -11,12 +11,16 @@ const StudentSidebar = ({
 }) => {
   const navItems = [
     { id: 'home', label: 'الرئيسية', icon: 'fa-house' },
+    { id: 'stories', label: 'مكتبة القصص', icon: 'fa-book-bookmark' },
+    { id: 'quizzes', label: 'الاختبارات', icon: 'fa-file-circle-question' },
     { id: 'journey', label: 'الرحلة التعليمية', icon: 'fa-book-open' },
     { id: 'speaking', label: 'ممارسة AI', icon: 'fa-robot' },
+    { id: 'videos', label: 'فيديوهات قصيرة', icon: 'fa-mobile-screen-button' },
     { id: 'salons', label: 'غرف الصوت', icon: 'fa-microphone' },
     { id: 'leaderboard', label: 'لوحة الصدارة', icon: 'fa-trophy' },
     { id: 'achievements', label: 'الإنجازات', icon: 'fa-award' },
     { id: 'chat', label: 'الدردشة العامة', icon: 'fa-comments' },
+    { id: 'profile', label: 'الملف الشخصي', icon: 'fa-circle-user' },
   ];
 
   return (
@@ -61,7 +65,7 @@ const StudentSidebar = ({
           <button 
             className="btn-3d-primary" 
             style={{ width: '100%', marginBottom: '1rem' }}
-            onClick={() => onPageChange('journey')}
+            onClick={() => onPageChange('stories')}
           >
             <i className="fa-solid fa-play"></i>
             <span>ابدأ الدرس الآن</span>
