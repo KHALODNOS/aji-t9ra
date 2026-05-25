@@ -7,6 +7,7 @@ import TestBank from "./TestBank";
 import AudioSalons from "./AudioSalons";
 import Leaderboard from "./Leaderboard";
 import TeacherProfile from "./TeacherProfile";
+import GeneralChat from "../student/GeneralChat";
 
 const TeacherDashboard = ({ onBack }) => {
   const [activePage, setActivePage] = useState("home");
@@ -146,6 +147,8 @@ const TeacherDashboard = ({ onBack }) => {
         return <AudioSalons onHome={() => setActivePage("home")} />;
       case "students":
         return <Leaderboard onHome={() => setActivePage("home")} />;
+      case "chat":
+        return <GeneralChat />;
       case "profile":
         return <TeacherProfile onHome={() => setActivePage("home")} />;
       default:

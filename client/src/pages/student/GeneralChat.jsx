@@ -123,6 +123,8 @@ const GeneralChat = () => {
   const typingList = Object.values(typingUsers);
 
   const recordChatActivity = async () => {
+    if ((currentUser.role || "").toLowerCase() !== "student") return;
+
     try {
       const response = await api.post("/student/journey/activity", { type: "general_chat_message" });
       publishStudentRewards({ earnedBadges: response.data?.earnedBadges || [] });

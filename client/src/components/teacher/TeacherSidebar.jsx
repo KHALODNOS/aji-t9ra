@@ -17,6 +17,7 @@ const TeacherSidebar = ({
     { id: 'tests', label: 'الاختبارات', icon: 'fa-vial' },
     { id: 'salons', label: 'الصالونات الصوتية', icon: 'fa-microphone' },
     { id: 'students', label: 'متابعة الطلاب', icon: 'fa-users' },
+    { id: 'chat', label: 'الدردشة العامة', icon: 'fa-comments' },
   ];
 
   return (

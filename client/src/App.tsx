@@ -6,6 +6,7 @@ import StudentDashboard from './pages/student/StudentDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ContentReview from './pages/admin/ContentReview';
+import TechnicalSupport from './pages/admin/TechnicalSupport';
 import LOADINGPAGE from './pages/common/LOADINGPAGE';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
@@ -72,6 +73,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <ContentReview />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/support"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <TechnicalSupport />
             </ProtectedRoute>
           }
         />
