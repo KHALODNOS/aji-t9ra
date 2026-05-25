@@ -99,7 +99,7 @@ const Leaderboard = ({ onBack, onLogout }) => {
   const activeData = competitorsData[selectedPath];
 
   return (
-    <div className="leaderboard-container">
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
@@ -872,98 +872,8 @@ const Leaderboard = ({ onBack, onLogout }) => {
         }
       `}</style>
 
-      {/* Right Sidebar Section */}
-      <aside className="sidebar">
-        <div className="sidebar-brand-header">
-          <h1 className="sidebar-brand-title">لوحة التحكم</h1>
-          <span className="sidebar-brand-subtitle">طريقك نحو الإتقان</span>
-        </div>
-
-        <ul className="nav-list">
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه لاكتشف")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-compass"></i>
-              <span>اكتشف</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه لرحلتي التعليمية")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-book-open"></i>
-              <span>رحلتي التعليمية</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper">
-            <div className={`nav-link ${activeTab === "لوحة الصدارة" ? "active" : ""}`}>
-              <i className="fa-solid fa-trophy"></i>
-              <span>لوحة الصدارة</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه لممارسة التحدث")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-headset"></i>
-              <span>ممارسة التحدث</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه للصالونات الصوتية")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-microphone"></i>
-              <span>الصالونات الصوتية</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه لإنجازاتي")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-award"></i>
-              <span>إنجازاتي</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه للملف الشخصي")}>
-            <div className="nav-link">
-              <i className="fa-regular fa-user"></i>
-              <span>الملف الشخصي</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه للشات")}>
-            <div className="nav-link">
-              <i className="fa-regular fa-comments"></i>
-              <span>الشات</span>
-            </div>
-          </li>
-        </ul>
-      </aside>
-
-      {/* Main Wrapper */}
-      <main className="main-wrapper">
-        {/* Topbar */}
-        <header className="topbar">
-          <div className="topbar-right-logo">
-            <h2 className="brand-logo-text">لغتي التعليمية</h2>
-            <div className="topbar-nav-tabs">
-              <span className="topbar-tab-link" onClick={() => alert("التوجه للرئيسية")}>
-                الرئيسية
-              </span>
-              <span className="topbar-tab-link" onClick={() => alert("التوجه للمسارات")}>
-                المسارات
-              </span>
-              <span className="topbar-tab-link active">لوحة الصدارة</span>
-            </div>
-          </div>
-
-          <div className="topbar-left-profile">
-            <div className="student-profile-avatar" onClick={() => alert("الملف الشخصي")}>
-              <img
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80"
-                alt="Ahmed Profile"
-              />
-            </div>
-            <div className="topbar-icons">
-              <i className="fa-solid fa-gear" onClick={() => alert("الإعدادات العامة")}></i>
-              <i className="fa-regular fa-bell" style={{ marginRight: "10px" }} onClick={() => alert("عرض التنبيهات")}></i>
-            </div>
-          </div>
-        </header>
-
         {/* Content Area */}
-        <div className="content-area">
+        <div className="content-area" style={{ padding: 0 }}>
           {/* Filters header bar */}
           <section className="leaderboard-filters-header">
             {/* Paths selector Pills */}
@@ -1083,7 +993,6 @@ const Leaderboard = ({ onBack, onLogout }) => {
             </div>
           </section>
         </div>
-      </main>
 
       {/* 🏆 Sticky User Current Status Bar */}
       <footer className="sticky-user-status-bar">
@@ -1203,7 +1112,7 @@ const Leaderboard = ({ onBack, onLogout }) => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

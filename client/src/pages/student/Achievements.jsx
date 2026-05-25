@@ -99,7 +99,7 @@ const Achievements = ({ onBack, onLogout }) => {
   );
 
   return (
-    <div className="achieve-container">
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
@@ -1014,85 +1014,8 @@ const Achievements = ({ onBack, onLogout }) => {
         }
       `}</style>
 
-      {/* Right Sidebar Section */}
-      <aside className="sidebar">
-        <div className="brand-header">
-          <div className="brand-logo-container">
-            <i className="fa-solid fa-graduation-cap"></i>
-          </div>
-          <h1 className="brand-title">أجي تقرا</h1>
-          <span className="brand-subtitle">منصة التعلم الذكي</span>
-        </div>
-
-        <ul className="nav-list">
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه للرئيسية")}>
-            <div className={`nav-link ${activeTab === "الرئيسية" ? "active" : ""}`}>
-              <i className="fa-solid fa-house"></i>
-              <span>الرئيسية</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه لمؤلف القصص")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-pen-nib"></i>
-              <span>مؤلف القصص</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه لإعدادات الـ AI")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-robot"></i>
-              <span>إعدادات الـ AI</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه للاختبارات")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-vial"></i>
-              <span>الاختبارات</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه للصالونات الصوتية")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-microphone"></i>
-              <span>الصالونات الصوتية</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه لمتابعة الطلاب")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-users"></i>
-              <span>متابعة الطلاب</span>
-            </div>
-          </li>
-        </ul>
-
-        {/* Sidebar Gold Action button */}
-        <div className="sidebar-action-container">
-          <button className="action-add-btn" onClick={() => alert("إضافة محتوى تعليمي جديد")}>
-            <i className="fa-solid fa-circle-plus"></i>
-            <span>إضافة محتوى</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Wrapper */}
-      <main className="main-wrapper">
-        {/* Topbar */}
-        <header className="topbar">
-          <div>
-            <h2 className="page-brand-title">إنجازاتي المشرقة</h2>
-            <span className="page-subtitle">واصل التعلم لتحقيق المزيد من الأوسمة!</span>
-          </div>
-
-          <div className="topbar-controls">
-            <div className="topbar-icon-btn" onClick={() => alert("عرض الإعدادات")}>
-              <i className="fa-solid fa-gear"></i>
-            </div>
-            <div className="topbar-icon-btn" onClick={() => alert("عرض الإشعارات")}>
-              <i className="fa-regular fa-bell"></i>
-            </div>
-          </div>
-        </header>
-
         {/* Content Area */}
-        <div className="content-area">
+        <div className="content-area" style={{ padding: 0 }}>
           {/* Section 1: Hero Progress (مستوانا الحالي والتحديات) */}
           <section className="hero-progress-section">
             <div className="hero-progress-card">
@@ -1273,7 +1196,6 @@ const Achievements = ({ onBack, onLogout }) => {
             </button>
           </div>
         </div>
-      </main>
 
       {/* 🌟 Share Certificate Modal Simulator */}
       {showShareModal && (
@@ -1326,7 +1248,7 @@ const Achievements = ({ onBack, onLogout }) => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

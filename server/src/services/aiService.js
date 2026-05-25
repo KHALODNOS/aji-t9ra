@@ -226,7 +226,7 @@ async function retrieveRelevantChunks(storyId, queryText, topK = 3) {
 async function generateStoryAnswer({ personality, retrievedChunks, question, chatHistory = [] }) {
   const genAI = getGenAIClient();
   if (!genAI) {
-    return "خطأ: لم يتم تهيئة مفتاح API الخاص بـ Gemini في ملف .env بالخادم.";
+    return "API key not fonunf";
   }
 
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });

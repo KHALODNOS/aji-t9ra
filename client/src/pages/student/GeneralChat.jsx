@@ -153,7 +153,7 @@ const GeneralChat = ({ onBack, onLogout }) => {
   );
 
   return (
-    <div className="chat-page-container">
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
@@ -822,93 +822,6 @@ const GeneralChat = ({ onBack, onLogout }) => {
         }
       `}</style>
 
-      {/* Right Sidebar Section */}
-      <aside className="sidebar">
-        <ul className="nav-list" style={{ marginTop: "30px" }}>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه للرئيسية")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-house"></i>
-              <span>الرئيسية</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه لمؤلف القصص")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-pen-nib"></i>
-              <span>مؤلف القصص</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه لإعدادات الـ AI")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-robot"></i>
-              <span>إعدادات الـ AI</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه للصالونات الصوتية")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-microphone"></i>
-              <span>الصالونات الصوتية</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه للاختبارات")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-vial"></i>
-              <span>الاختبارات</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه لمتابعة الطلاب")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-users"></i>
-              <span>متابعة الطلاب</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("إضافة محتوى")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-circle-plus"></i>
-              <span>إضافة محتوى</span>
-            </div>
-          </li>
-        </ul>
-
-        {/* Sidebar Bottom Current points balance card */}
-        <div className="sidebar-points-card">
-          <span className="points-title-lbl">رصيدك الحالي</span>
-          <div className="points-value-row">
-            <span>1,250 نقطة</span>
-            <i className="fa-solid fa-coins"></i>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Wrapper */}
-      <main className="main-wrapper">
-        {/* Topbar */}
-        <header className="topbar">
-          <div className="topbar-left-brand">
-            <h1 className="topbar-brand-title">أجي تقرا</h1>
-          </div>
-
-          <div className="topbar-right-controls">
-            {/* Student profile mini card */}
-            <div className="topbar-student-card">
-              <div className="student-avatar">
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80"
-                  alt="Ahmad Al Alami Avatar"
-                />
-              </div>
-              <div className="student-info-mini">
-                <span className="student-name-lbl">أحمد العلمي</span>
-                <span className="student-role-lbl">مستوى متقدم</span>
-              </div>
-            </div>
-
-            <div className="topbar-actions-bell">
-              <i className="fa-solid fa-gear" onClick={() => alert("إعدادات المحادثة")}></i>
-              <i className="fa-regular fa-bell" style={{ marginRight: "10px" }} onClick={() => alert("عرض الإشعارات")}></i>
-            </div>
-          </div>
-        </header>
-
         {/* Main Grid Panels container */}
         <div className="panels-grid-container">
           {/* Panel 1: Online Members (المتصلون الآن) */}
@@ -1042,8 +955,8 @@ const GeneralChat = ({ onBack, onLogout }) => {
             </form>
           </section>
         </div>
-          </main>
-      </div>
+
+      </>
     );
   };
 

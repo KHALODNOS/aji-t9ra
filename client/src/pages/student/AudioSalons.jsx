@@ -126,7 +126,7 @@ const AudioSalonsStudent = ({ onBack, onLogout }) => {
   );
 
   return (
-    <div className="salons-container">
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
@@ -1231,142 +1231,8 @@ const AudioSalonsStudent = ({ onBack, onLogout }) => {
         }
       `}</style>
 
-      {/* Right Sidebar Section */}
-      <aside className="sidebar">
-        <div className="brand-header">
-          <h1 className="brand-title">أجي تقرا</h1>
-          <span className="brand-subtitle">منصة تعلم اللغات</span>
-        </div>
-
-        <ul className="nav-list">
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى صفحة اكتشف")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-compass"></i>
-              <span>اكتشف</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى صفحة رحلتي التعليمية")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-book-open"></i>
-              <span>رحلتي التعليمية</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى ممارسة التحدث")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-headset"></i>
-              <span>ممارسة التحدث</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper">
-            <div className={`nav-link ${activeTab === "الصالونات الصوتية" ? "active" : ""}`}>
-              <i className="fa-solid fa-microphone"></i>
-              <span>الصالونات الصوتية</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى لوحة الصدارة")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-trophy"></i>
-              <span>لوحة الصدارة</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى إنجازاتي")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-award"></i>
-              <span>إنجازاتي</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى الملف الشخصي")}>
-            <div className="nav-link">
-              <i className="fa-regular fa-user"></i>
-              <span>الملف الشخصي</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى الشات")}>
-            <div className="nav-link">
-              <i className="fa-regular fa-comments"></i>
-              <span>الشات</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى الفيديوهات")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-circle-play"></i>
-              <span>فيديوهات</span>
-            </div>
-          </li>
-        </ul>
-
-        {/* Sidebar Bottom Profile Card */}
-        <div className="sidebar-bottom">
-          <div className="profile-card">
-            <div className="profile-img-container">
-              <img
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
-                alt="Ahmed Bennani Avatar"
-              />
-            </div>
-            <div className="profile-info">
-              <span className="profile-name">أحمد بناني</span>
-              <span className="profile-role">مستوى متقدم</span>
-            </div>
-          </div>
-
-          <div className="logout-btn" onClick={onLogout || onBack}>
-            <i className="fa-solid fa-arrow-right-from-bracket"></i>
-            <span>تسجيل الخروج</span>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Wrapper */}
-      <main className="main-wrapper">
-        {/* Topbar */}
-        <header className="topbar">
-          <div className="topbar-left-controls">
-            {/* Live indicator block */}
-            <div className="live-indicator-wrapper">
-              <h2 className="live-title">الصالونات الصوتية المباشرة</h2>
-              <div className="live-tag-now">
-                <span className="live-tag-dot"></span>
-                <span>بث مباشر الآن</span>
-              </div>
-            </div>
-
-            {/* Quick stats block */}
-            <div className="topbar-stats-card">
-              <div className="topbar-stat-sub">
-                <span className="topbar-stat-lbl">طلاب متصلون</span>
-                <span className="topbar-stat-val">1,240</span>
-              </div>
-              <div className="stat-divider"></div>
-              <div className="topbar-stat-sub">
-                <span className="topbar-stat-lbl">غرف نشطة</span>
-                <span className="topbar-stat-val">12</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="topbar-left-controls">
-            {/* Search Input */}
-            <div className="search-wrapper">
-              <i className="fa-solid fa-magnifying-glass search-icon-inside"></i>
-              <input
-                type="text"
-                className="search-input"
-                placeholder="ابحث عن صالون..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
-            </div>
-
-            <div className="topbar-right-controls">
-              <i className="fa-solid fa-gear" onClick={() => alert("إعدادات الصالونات")}></i>
-              <i className="fa-regular fa-bell" style={{ marginRight: "10px" }} onClick={() => alert("فتح التنبيهات")}></i>
-            </div>
-          </div>
-        </header>
-
         {/* Content Area */}
-        <div className="content-area">
+        <div className="content-area" style={{ padding: 0 }}>
           {/* Featured Audio Salon Card (الصالون المميز) */}
           <section className="featured-salon-section">
             <div className="featured-card">
@@ -1530,7 +1396,6 @@ const AudioSalonsStudent = ({ onBack, onLogout }) => {
             </div>
           </section>
         </div>
-      </main>
 
       {/* 🌟 Live Simulated Audio Room overlay simulator */}
       {activeSalonRoom && (
@@ -1686,7 +1551,7 @@ const AudioSalonsStudent = ({ onBack, onLogout }) => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

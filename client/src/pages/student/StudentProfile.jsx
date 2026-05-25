@@ -40,7 +40,7 @@ const StudentProfile = ({ onBack, onLogout }) => {
   };
 
   return (
-    <div className="profile-container">
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
@@ -735,86 +735,8 @@ const StudentProfile = ({ onBack, onLogout }) => {
         }
       `}</style>
 
-      {/* Right Sidebar Section */}
-      <aside className="sidebar">
-        <div className="brand-header">
-          <div className="brand-logo-container">
-            <i className="fa-solid fa-graduation-cap"></i>
-          </div>
-          <h1 className="brand-title">أجي تقرا</h1>
-          <span className="brand-subtitle">منصة التعلم الذكي</span>
-        </div>
-
-        <ul className="nav-list">
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى صفحة اكتشف")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-compass"></i>
-              <span>اكتشف</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى صفحة تعلمي")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-book-open"></i>
-              <span>تعلمي</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى ممارسة AI")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-robot"></i>
-              <span>ممارسة AI</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى غرف الصوت")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-microphone"></i>
-              <span>غرف الصوت</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى لوحة الصدارة")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-trophy"></i>
-              <span>لوحة الصدارة</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى الإنجازات")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-award"></i>
-              <span>الإنجازات</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper">
-            <div className={`nav-link ${activeTab === "الملف الشخصي" ? "active" : ""}`}>
-              <i className="fa-regular fa-user"></i>
-              <span>الملف الشخصي</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى الدردشة")}>
-            <div className="nav-link">
-              <i className="fa-regular fa-comments"></i>
-              <span>الدردشة</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى الفيديوهات")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-circle-play"></i>
-              <span>الفيديوهات</span>
-            </div>
-          </li>
-        </ul>
-
-        {/* Sidebar solid blue action button */}
-        <div className="sidebar-action-container">
-          <button className="action-add-btn" onClick={() => alert("بدء رحلة الدرس التفاعلي!")}>
-            <i className="fa-solid fa-circle-play"></i>
-            <span>ابدأ الدرس الآن</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Wrapper */}
-      <main className="main-wrapper">
         {/* Main Scrollable Content Area */}
-        <div className="content-area">
+        <div className="content-area" style={{ padding: 0 }}>
           {/* Profile Hero Header */}
           <section className="profile-hero">
             <div className="avatar-outer-wrapper">
@@ -1071,7 +993,6 @@ const StudentProfile = ({ onBack, onLogout }) => {
             <i className="fa-solid fa-clover"></i>
           </div>
         </div>
-      </main>
 
       {/* Toast popup alerts */}
       {showToast && (
@@ -1105,7 +1026,7 @@ const StudentProfile = ({ onBack, onLogout }) => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

@@ -43,7 +43,7 @@ const EducationalJourney = ({ onBack, onLogout }) => {
   };
 
   return (
-    <div className="journey-container">
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
@@ -1033,115 +1033,8 @@ const EducationalJourney = ({ onBack, onLogout }) => {
         }
       `}</style>
 
-      {/* Right Sidebar Section */}
-      <aside className="sidebar">
-        <div className="brand-header">
-          <h1 className="brand-title">أجي تقرا</h1>
-        </div>
-
-        <ul className="nav-list">
-          <li className="nav-item-wrapper" onClick={() => setActiveTab("الرئيسية")}>
-            <div className={`nav-link ${activeTab === "الرئيسية" ? "active" : ""}`}>
-              <i className="fa-solid fa-house"></i>
-              <span>الرئيسية</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => setActiveTab("مؤلف القصص")}>
-            <div className={`nav-link ${activeTab === "مؤلف القصص" ? "active" : ""}`}>
-              <i className="fa-solid fa-pen-nib"></i>
-              <span>مؤلف القصص</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => setActiveTab("إعدادات الـ AI")}>
-            <div className={`nav-link ${activeTab === "إعدادات الـ AI" ? "active" : ""}`}>
-              <i className="fa-solid fa-robot"></i>
-              <span>إعدادات الـ AI</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => setActiveTab("الاختبارات")}>
-            <div className={`nav-link ${activeTab === "الاختبارات" ? "active" : ""}`}>
-              <i className="fa-solid fa-vial"></i>
-              <span>الاختبارات</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => setActiveTab("الصالونات الصوتية")}>
-            <div className={`nav-link ${activeTab === "الصالونات الصوتية" ? "active" : ""}`}>
-              <i className="fa-solid fa-microphone"></i>
-              <span>الصالونات الصوتية</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => setActiveTab("متابعة الطلاب")}>
-            <div className={`nav-link ${activeTab === "متابعة الطلاب" ? "active" : ""}`}>
-              <i className="fa-solid fa-users"></i>
-              <span>متابعة الطلاب</span>
-            </div>
-          </li>
-        </ul>
-
-        {/* Action Button */}
-        <div className="sidebar-action-container">
-          <button className="action-add-btn" onClick={() => alert("إضافة محتوى تعليمي جديد")}>
-            <i className="fa-solid fa-circle-plus"></i>
-            <span>إضافة محتوى</span>
-          </button>
-        </div>
-
-        {/* Bottom Profile Details */}
-        <div className="sidebar-bottom">
-          <div className="profile-card">
-            <div className="profile-img-container">
-              <img
-                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
-                alt="Ahmed Profile"
-              />
-            </div>
-            <div className="profile-info">
-              <span className="profile-name">أحمد بن محمد</span>
-              <span className="profile-role">مستوى متقدم</span>
-            </div>
-          </div>
-
-          <div className="logout-btn" onClick={onLogout || onBack}>
-            <i className="fa-solid fa-arrow-right-from-bracket"></i>
-            <span>تسجيل الخروج</span>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <main className="main-wrapper">
-        {/* Topbar */}
-        <header className="topbar">
-          <h2 className="page-brand-title">رحلتي التعليمية</h2>
-
-          <div className="topbar-controls">
-            {/* Search Input */}
-            <div className="search-wrapper">
-              <i className="fa-solid fa-magnifying-glass search-icon-inside"></i>
-              <input
-                type="text"
-                className="search-input"
-                placeholder="ابحث عن قصص..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
-            </div>
-
-            {/* Notification Control */}
-            <div className="topbar-icon-btn" onClick={() => setShowNotification(true)}>
-              <i className="fa-regular fa-bell"></i>
-              <div className="dot-badge"></div>
-            </div>
-
-            {/* Settings Control */}
-            <div className="topbar-icon-btn" onClick={() => setShowSettings(true)}>
-              <i className="fa-solid fa-sliders"></i>
-            </div>
-          </div>
-        </header>
-
         {/* Content Area */}
-        <div className="content-area">
+        <div className="content-area" style={{ padding: 0 }}>
           {/* Section 1: Progress Summary (ملخص التقدم) */}
           <section className="stats-section">
             <h3 className="section-title">ملخص التقدم</h3>
@@ -1401,7 +1294,6 @@ const EducationalJourney = ({ onBack, onLogout }) => {
             </div>
           </section>
         </div>
-      </main>
 
       {/* Interactive popups for Controls */}
       {showNotification && (
@@ -1447,7 +1339,7 @@ const EducationalJourney = ({ onBack, onLogout }) => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

@@ -96,7 +96,7 @@ const SpeakingPractice = ({ onBack, onLogout }) => {
   );
 
   return (
-    <div className="speaking-container">
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
@@ -904,119 +904,8 @@ const SpeakingPractice = ({ onBack, onLogout }) => {
         }
       `}</style>
 
-      {/* Right Sidebar */}
-      <aside className="sidebar">
-        <div className="brand-header">
-          <h1 className="brand-title">أجي تقرا</h1>
-          <span className="brand-subtitle">تعلم بذكاء</span>
-        </div>
-
-        <ul className="nav-list">
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى صفحة اكتشف")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-compass"></i>
-              <span>اكتشف</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى صفحة رحلتي التعليمية")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-book-open"></i>
-              <span>رحلتي التعليمية</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper">
-            <div className={`nav-link ${activeTab === "ممارسة التحدث" ? "active" : ""}`}>
-              <i className="fa-solid fa-headset"></i>
-              <span>ممارسة التحدث</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى الصالونات الصوتية")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-microphone"></i>
-              <span>الصالونات الصوتية</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى لوحة الصدارة")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-trophy"></i>
-              <span>لوحة الصدارة</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى إنجازاتي")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-award"></i>
-              <span>إنجازاتي</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى الملف الشخصي")}>
-            <div className="nav-link">
-              <i className="fa-regular fa-user"></i>
-              <span>الملف الشخصي</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى الشات")}>
-            <div className="nav-link">
-              <i className="fa-regular fa-comments"></i>
-              <span>الشات</span>
-            </div>
-          </li>
-          <li className="nav-item-wrapper" onClick={() => alert("التوجه إلى الفيديوهات")}>
-            <div className="nav-link">
-              <i className="fa-solid fa-circle-play"></i>
-              <span>فيديوهات</span>
-            </div>
-          </li>
-        </ul>
-
-        {/* Sidebar Footer links */}
-        <div className="sidebar-bottom">
-          <div className="bottom-link" onClick={() => alert("فتح إعدادات الحساب")}>
-            <i className="fa-solid fa-gear"></i>
-            <span>الإعدادات</span>
-          </div>
-
-          <div className="bottom-link logout" onClick={onLogout || onBack}>
-            <i className="fa-solid fa-arrow-right-from-bracket"></i>
-            <span>تسجيل الخروج</span>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Wrapper */}
-      <main className="main-wrapper">
-        {/* Topbar */}
-        <header className="topbar">
-          <div className="topbar-right-controls">
-            <div className="topbar-avatar-container">
-              <img
-                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
-                alt="User Profile"
-              />
-            </div>
-            <div className="topbar-icon-btn" onClick={() => alert("فتح الإعدادات السريعة")}>
-              <i className="fa-solid fa-gear"></i>
-            </div>
-            <div className="topbar-icon-btn" onClick={() => alert("فتح الإشعارات")}>
-              <i className="fa-regular fa-bell"></i>
-            </div>
-            <span className="topbar-brand-lbl">أجي تقرا</span>
-          </div>
-
-          {/* Search bar inside header */}
-          <div className="search-container">
-            <i className="fa-solid fa-magnifying-glass search-icon-inside"></i>
-            <input
-              type="text"
-              className="search-input"
-              placeholder="بحث عن شخصية أو درس..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
-          </div>
-        </header>
-
         {/* Main Content Area */}
-        <div className="content-area">
+        <div className="content-area" style={{ padding: 0 }}>
           <section className="header-title-section">
             <h2 className="page-title">تحدث مع شخصيات القصص</h2>
             <p className="page-subtitle">اختر شخصية لتمارس معها ما تعلمته في القصص بطريقة تفاعلية وممتعة.</p>
@@ -1142,7 +1031,6 @@ const SpeakingPractice = ({ onBack, onLogout }) => {
             </div>
           </section>
         </div>
-      </main>
 
       {/* WOW Interactive Voice & Chat Simulation Panel */}
       {selectedCharacter && (
@@ -1217,7 +1105,7 @@ const SpeakingPractice = ({ onBack, onLogout }) => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
