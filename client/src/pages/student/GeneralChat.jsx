@@ -1,161 +1,157 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { io } from "socket.io-client";
+import { useSocket } from "../../context/SocketContext";
 import api from "../../services/api";
 import { publishStudentRewards } from "../../utils/studentRewards";
 
-const GeneralChat = ({ onBack, onLogout }) => {
-  // State management
-  const [searchText, setSearchText] = useState("");
-  const [activeTab, setActiveTab] = useState("الدردشة");
-  const [messages, setMessages] = useState([
-    {
-      id: "join-1",
-      type: "system",
-      text: "سارة الراجحي انضمت إلى الدردشة"
-    },
-    {
-      id: "msg-1",
-      type: "user-other",
-      sender: "مريم الشريف",
-      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&auto=format&fit=crop&q=80",
-      text: "السلام عليكم يا شباب، حد عنده فكرة عن موعد محاضرة الرياضيات القادمة؟",
-      time: "10:15 ص",
-      bgClass: "blue-bubble"
-    },
-    {
-      id: "msg-2",
-      type: "user-current",
-      sender: "أحمد العلمي",
-      text: "أهلاً مريم، المحاضرة يوم الثلاثاء الساعة 10 صباحاً إن شاء الله.",
-      time: "10:16 ص",
-      bgClass: "yellow-bubble",
-      reaction: "🔥"
-    },
-    {
-      id: "msg-3",
-      type: "user-other",
-      sender: "ياسين نوري",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&auto=format&fit=crop&q=80",
-      text: "شكراً جزيلاً! كنت سأقوم بوضع تذكير الآن.",
-      time: "10:18 ص",
-      bgClass: "blue-bubble"
-    },
-    {
-      id: "join-2",
-      type: "system",
-      text: "سعد الموسى انضم إلى الدردشة"
-    },
-    {
-      id: "msg-4",
-      type: "user-current",
-      sender: "أحمد العلمي",
-      text: 'هل قام أحدكم بتحميل ملف المراجعة الأخير؟ الملف يبدو مفقوداً في قسم "التعلم الخاص بي".',
-      time: "10:22 ص",
-      bgClass: "yellow-bubble"
-    }
-  ]);
-  
-  const [inputVal, setInputVal] = useState("");
-  const [isTyping, setIsTyping] = useState(false); // Typing indicator for Sara
-  const [onlineStatus, setOnlineStatus] = useState("تكتب الآن..."); // Sara status text
-  const chatBottomRef = useRef(null);
+const fallbackAvatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80";
 
-  // Auto-scroll chat to bottom
+const getCurrentUser = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return {
+      id: user._id || user.id || "local-user",
+      name: user.fullName || user.username || "طالب أجي تقرا",
+      avatar: user.avatarUrl || user.photoProfile || user.avatar || fallbackAvatar,
+      role: user.Role || user.role || "student",
+    };
+  } catch (error) {
+    console.error("Error reading current user:", error);
+    return {
+      id: "local-user",
+      name: "طالب أجي تقرا",
+      avatar: fallbackAvatar,
+      role: "student",
+    };
+  }
+};
+
+const formatTime = (value) => {
+  const date = value ? new Date(value) : new Date();
+  return date.toLocaleTimeString("ar-MA", { hour: "2-digit", minute: "2-digit" });
+};
+
+const GeneralChat = () => {
+  const { socket: contextSocket } = useSocket();
+  const [localSocket, setLocalSocket] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [typingUsers, setTypingUsers] = useState({});
+  const [searchText, setSearchText] = useState("");
+  const [inputVal, setInputVal] = useState("");
+  const chatBottomRef = useRef(null);
+  const typingTimerRef = useRef(null);
+  const currentUser = useMemo(getCurrentUser, []);
+  const socket = contextSocket || localSocket;
+
+  useEffect(() => {
+    if (contextSocket || localSocket) return undefined;
+
+    const token = localStorage.getItem("token");
+    if (!token || !currentUser.id) return undefined;
+
+    const nextSocket = io("http://localhost:5000");
+    nextSocket.on("connect", () => {
+      nextSocket.emit("join", currentUser.id);
+    });
+    setLocalSocket(nextSocket);
+
+    return () => {
+      nextSocket.close();
+      setLocalSocket(null);
+    };
+  }, [contextSocket, currentUser, localSocket]);
+
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  }, [messages, typingUsers]);
 
-  // Online members list
-  const onlineMembers = [
-    {
-      id: "sara",
-      name: "سارة الراجحي",
-      status: onlineStatus,
-      isTyping: isTyping,
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80"
-    },
-    {
-      id: "ibrahim",
-      name: "إبراهيم فكري",
-      status: "متصل",
-      avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&auto=format&fit=crop&q=80"
-    },
-    {
-      id: "layla",
-      name: "ليلى عمر",
-      status: "متصل",
-      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80"
-    },
-    {
-      id: "hamza",
-      name: "حمزة خالد",
-      status: "متصل",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80"
-    }
-  ];
+  useEffect(() => {
+    if (!socket) return undefined;
 
-  // Send Message Handler
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (!inputVal.trim()) return;
+    socket.emit("general-chat:join", currentUser);
 
-    // Get current Arabic time
-    const now = new Date();
-    let hours = now.getHours();
-    const minutes = now.getMinutes().toString().padStart(2, "0");
-    const ampm = hours >= 12 ? "م" : "ص";
-    hours = hours % 12;
-    hours = hours ? hours : 12; // key 12 hour formatting
-    const timeString = `${hours}:${minutes} ${ampm}`;
-
-    const newMsg = {
-      id: `user-msg-${Date.now()}`,
-      type: "user-current",
-      sender: "أحمد العلمي",
-      text: inputVal,
-      time: timeString,
-      bgClass: "yellow-bubble"
+    const handleHistory = (history) => {
+      setMessages(Array.isArray(history) ? history : []);
     };
 
-    setMessages(prev => [...prev, newMsg]);
-    const originalText = inputVal;
-    setInputVal("");
-    api.post("/student/journey/activity", { type: "general_chat_message" })
-      .then((response) => publishStudentRewards({ earnedBadges: response.data?.earnedBadges || [] }))
-      .catch((error) => console.error("Error recording chat activity:", error));
+    const handleMessage = (message) => {
+      setMessages((current) => (
+        current.some((item) => item.id === message.id) ? current : [...current, message]
+      ));
+    };
 
-    // Simulate online reply
-    setIsTyping(true);
-    setOnlineStatus("تكتب الآن...");
+    const handleSystem = (event) => {
+      setMessages((current) => [...current, { ...event, type: "system" }]);
+    };
 
-    setTimeout(() => {
-      setIsTyping(false);
-      setOnlineStatus("متصل");
+    const handleUsers = (users) => {
+      setOnlineUsers(Array.isArray(users) ? users : []);
+    };
 
-      let replyText = "مرحباً أحمد! سأتحقق من ذلك فوراً في لوحة التحكم الخاصة بي وأعلمك.";
-      if (originalText.includes("ملف") || originalText.includes("مفقود")) {
-        replyText = "نعم يا أحمد، لقد واجهت نفس المشكلة! أعتقد أن الأستاذ سيقوم بإعادة رفعه الليلة.";
-      } else if (originalText.includes("محاضرة") || originalText.includes("موعد")) {
-        replyText = "أعتقد أن موعد المحاضرة مؤكد يوم الثلاثاء، لقد أرسلوا لنا بريداً إلكترونياً بذلك.";
-      }
+    const handleTyping = ({ isTyping, user }) => {
+      if (!user?.id || user.id === currentUser.id) return;
+      setTypingUsers((current) => {
+        const next = { ...current };
+        if (isTyping) next[user.id] = user;
+        else delete next[user.id];
+        return next;
+      });
+    };
 
-      const botReply = {
-        id: `bot-msg-${Date.now()}`,
-        type: "user-other",
-        sender: "سارة الراجحي",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80",
-        text: replyText,
-        time: timeString,
-        bgClass: "blue-bubble"
-      };
+    socket.on("general-chat:history", handleHistory);
+    socket.on("general-chat:message", handleMessage);
+    socket.on("general-chat:system", handleSystem);
+    socket.on("general-chat:users", handleUsers);
+    socket.on("general-chat:typing", handleTyping);
 
-      setMessages(prev => [...prev, botReply]);
-    }, 3000);
+    return () => {
+      socket.emit("general-chat:typing", { isTyping: false, user: currentUser });
+      socket.off("general-chat:history", handleHistory);
+      socket.off("general-chat:message", handleMessage);
+      socket.off("general-chat:system", handleSystem);
+      socket.off("general-chat:users", handleUsers);
+      socket.off("general-chat:typing", handleTyping);
+      window.clearTimeout(typingTimerRef.current);
+    };
+  }, [socket, currentUser]);
+
+  const filteredUsers = onlineUsers.filter((user) => (
+    (user.name || "").toLowerCase().includes(searchText.toLowerCase())
+  ));
+
+  const typingList = Object.values(typingUsers);
+
+  const recordChatActivity = async () => {
+    try {
+      const response = await api.post("/student/journey/activity", { type: "general_chat_message" });
+      publishStudentRewards({ earnedBadges: response.data?.earnedBadges || [] });
+    } catch (error) {
+      console.error("Error recording chat activity:", error);
+    }
   };
 
-  // Filter peers
-  const filteredPeers = onlineMembers.filter(member =>
-    member.name.toLowerCase().includes(searchText.toLowerCase())
-  );
+  const handleInputChange = (event) => {
+    setInputVal(event.target.value);
+    if (!socket) return;
+
+    socket.emit("general-chat:typing", { isTyping: true, user: currentUser });
+    window.clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = window.setTimeout(() => {
+      socket.emit("general-chat:typing", { isTyping: false, user: currentUser });
+    }, 900);
+  };
+
+  const handleSendMessage = (event) => {
+    event.preventDefault();
+    const text = inputVal.trim();
+    if (!text || !socket) return;
+
+    socket.emit("general-chat:message", { text, user: currentUser });
+    socket.emit("general-chat:typing", { isTyping: false, user: currentUser });
+    setInputVal("");
+    recordChatActivity();
+  };
 
   return (
     <>
@@ -163,806 +159,465 @@ const GeneralChat = ({ onBack, onLogout }) => {
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
 
-        :root {
-          --bg-light: #fbfbf6; /* Premium light ivory background color */
-          --sidebar-bg: #ffffff;
-          --primary-blue: #00458b; /* Main Deep Blue */
-          --primary-blue-dark: #002d5c;
-          --primary-yellow: #f9c851; /* Main Gold Yellow */
-          --primary-yellow-light: #fef5d8;
-          --text-main: #1d1d1d;
-          --text-muted: #7d8b9b;
-          --border-color: #f1ebd9;
-          --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.015);
-          --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.03);
-        }
-
-        * {
-          box-sizing: border-box;
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body {
-          margin: 0;
+        .general-chat-page {
+          direction: rtl;
           font-family: 'Tajawal', sans-serif;
-          background: var(--bg-light);
-          direction: rtl;
-          color: var(--text-main);
-        }
-
-        .chat-page-container {
-          display: flex;
-          width: 100%;
-          min-height: 100vh;
-          background: var(--bg-light);
-          direction: rtl;
-        }
-
-        /* Sidebar RTL */
-        .sidebar {
-          width: 300px;
-          background: var(--sidebar-bg);
-          border-left: 1px solid #f2f5f9;
-          display: flex;
-          flex-direction: column;
-          padding: 30px 0;
-          flex-shrink: 0;
-          box-shadow: -4px 0 20px rgba(0, 0, 0, 0.01);
-        }
-
-        .nav-list {
-          list-style: none;
-          padding: 0 15px;
-          margin: 0;
-          flex-grow: 1;
-        }
-
-        .nav-item-wrapper {
-          margin-bottom: 5px;
-        }
-
-        .nav-link {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          padding: 12px 20px;
-          text-decoration: none;
-          color: #64748b;
-          font-weight: 700;
-          cursor: pointer;
-          border-radius: 14px;
-          font-size: 0.95rem;
-        }
-
-        .nav-link:hover {
-          background: #f8fafc;
-          color: var(--primary-blue);
-        }
-
-        .nav-link.active {
-          background: #eef5fc;
-          color: var(--primary-blue);
-          border-right: 4px solid var(--primary-blue);
-          border-radius: 0 14px 14px 0;
-        }
-
-        .nav-link i {
-          font-size: 1.15rem;
-          width: 24px;
-          text-align: center;
-        }
-
-        /* Sidebar Bottom Points Balance Card */
-        .sidebar-points-card {
-          margin: 20px;
-          background: #f1f5f9;
-          border-radius: 20px;
-          padding: 18px;
-          border: 1px solid #e2e8f0;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .points-title-lbl {
-          font-size: 0.8rem;
-          color: #64748b;
-          font-weight: 700;
-        }
-
-        .points-value-row {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 1.3rem;
-          font-weight: 900;
-          color: var(--primary-blue);
-        }
-
-        .points-value-row i {
-          color: var(--primary-yellow);
-        }
-
-        /* Main Wrapper */
-        .main-wrapper {
-          flex-grow: 1;
-          display: flex;
-          flex-direction: column;
-          height: 100vh;
-        }
-
-        /* Topbar styling */
-        .topbar {
-          padding: 20px 40px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          background: var(--bg-light);
-          flex-shrink: 0;
-        }
-
-        .topbar-left-brand {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .topbar-brand-title {
-          font-size: 1.6rem;
-          font-weight: 950;
-          color: var(--primary-blue);
-          margin: 0;
-        }
-
-        .topbar-right-controls {
-          display: flex;
-          align-items: center;
-          gap: 25px;
-        }
-
-        /* Student profile box */
-        .topbar-student-card {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          background: #ffffff;
-          padding: 8px 16px;
-          border-radius: 16px;
-          border: 1px solid #f1ebd9;
-          box-shadow: var(--shadow-sm);
-        }
-
-        .student-avatar {
-          width: 38px;
-          height: 38px;
-          border-radius: 50%;
-          overflow: hidden;
-          border: 1.5px solid #cbd5e1;
-        }
-
-        .student-avatar img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .student-info-mini {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .student-name-lbl {
-          font-size: 0.85rem;
-          font-weight: 850;
-          color: var(--text-main);
-        }
-
-        .student-role-lbl {
-          font-size: 0.7rem;
-          color: #64748b;
-          font-weight: 700;
-          margin-top: 2px;
-        }
-
-        .topbar-actions-bell {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          font-size: 1.2rem;
-          color: #64748b;
-        }
-
-        .topbar-actions-bell i {
-          cursor: pointer;
-        }
-
-        .topbar-actions-bell i:hover {
-          color: var(--primary-blue);
-        }
-
-        /* Grid Main Content Panels */
-        .panels-grid-container {
-          flex-grow: 1;
           display: grid;
-          grid-template-columns: 1fr 3fr;
-          padding: 0 40px 30px;
-          gap: 30px;
+          grid-template-columns: 300px minmax(0, 1fr);
+          gap: 22px;
+          min-height: calc(100vh - 150px);
+        }
+
+        .chat-side-panel,
+        .chat-main-panel {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 24px;
+          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
           overflow: hidden;
         }
 
-        /* Left Panel: Online list */
-        .online-list-panel {
-          background: #ffffff;
-          border-radius: 28px;
-          border: 1px solid rgba(241, 235, 217, 0.4);
-          box-shadow: var(--shadow-sm);
-          padding: 25px;
+        .chat-side-panel {
           display: flex;
           flex-direction: column;
-          overflow: hidden;
+          padding: 20px;
+          min-height: 580px;
         }
 
-        .panel-title-row {
+        .chat-side-title {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 20px;
+          gap: 12px;
+          margin-bottom: 16px;
         }
 
-        .panel-main-lbl {
+        .chat-side-title h3,
+        .chat-title-block h3 {
+          margin: 0;
+          color: #315b55;
           font-size: 1.05rem;
           font-weight: 900;
-          color: #1e293b;
         }
 
-        .online-badge-count {
-          background: #eff6ff;
-          color: var(--primary-blue);
-          font-size: 0.75rem;
-          font-weight: 800;
-          padding: 4px 10px;
-          border-radius: 20px;
+        .online-count {
+          background: #f2f8f7;
+          color: #5DA296;
+          border-radius: 999px;
+          padding: 5px 10px;
+          font-size: 0.72rem;
+          font-weight: 900;
         }
 
-        .peer-search-wrapper {
+        .chat-search {
           position: relative;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
         }
 
-        .peer-search-input {
+        .chat-search input {
           width: 100%;
+          border: 1px solid #e2e8f0;
           background: #f8fafc;
-          border: 1px solid #cbd5e1;
           border-radius: 14px;
-          padding: 10px 12px 10px 35px;
-          font-family: inherit;
-          font-size: 0.8rem;
+          padding: 11px 36px 11px 12px;
           outline: none;
-          font-weight: 600;
+          font-family: inherit;
+          font-weight: 800;
         }
 
-        .peer-search-input:focus {
-          border-color: var(--primary-blue);
-          background: #ffffff;
-        }
-
-        .peer-search-icon {
+        .chat-search i {
           position: absolute;
-          left: 12px;
+          right: 13px;
           top: 50%;
           transform: translateY(-50%);
           color: #94a3b8;
-          font-size: 0.85rem;
         }
 
-        .online-users-scrollable {
-          flex-grow: 1;
+        .online-list {
+          display: grid;
+          gap: 12px;
           overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
+          padding-left: 4px;
         }
 
-        .online-peer-card {
+        .online-user {
           display: flex;
           align-items: center;
-          gap: 12px;
-          cursor: pointer;
+          gap: 10px;
+          padding: 10px;
+          border-radius: 16px;
+          background: #f8fafc;
         }
 
-        .peer-avatar-wrapper {
+        .user-avatar-wrap {
           position: relative;
-          width: 44px;
-          height: 44px;
+          width: 42px;
+          height: 42px;
           flex-shrink: 0;
         }
 
-        .peer-avatar-img {
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          overflow: hidden;
-          border: 1px solid #e2e8f0;
-        }
-
-        .peer-avatar-img img {
+        .user-avatar-wrap img,
+        .message-avatar img {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          border-radius: 50%;
         }
 
-        .online-light-dot {
+        .online-dot {
           position: absolute;
-          bottom: 2px;
-          left: 2px;
-          width: 10px;
-          height: 10px;
-          background: #22c55e;
+          bottom: 1px;
+          left: 1px;
+          width: 11px;
+          height: 11px;
           border-radius: 50%;
           border: 2px solid #ffffff;
+          background: #22c55e;
         }
 
-        .peer-info-sub {
-          display: flex;
-          flex-direction: column;
+        .online-user strong {
+          display: block;
+          color: #172033;
+          font-size: 0.86rem;
+          font-weight: 900;
         }
 
-        .peer-name-lbl {
-          font-size: 0.85rem;
-          font-weight: 800;
-          color: #334155;
-        }
-
-        .peer-status-lbl {
-          font-size: 0.7rem;
-          color: #94a3b8;
-          font-weight: 600;
-          margin-top: 2px;
-        }
-
-        .peer-status-lbl.typing {
-          color: var(--primary-blue);
+        .online-user span {
+          color: #64748b;
+          font-size: 0.72rem;
           font-weight: 800;
         }
 
-        .btn-view-all-members {
-          text-align: center;
-          color: #3b82f6;
-          font-weight: 700;
-          font-size: 0.8rem;
-          margin-top: auto;
-          padding-top: 15px;
-          cursor: pointer;
-        }
-
-        .btn-view-all-members:hover {
-          text-decoration: underline;
-        }
-
-        /* Right Panel: Chat window */
         .chat-main-panel {
-          background: #ffffff;
-          border-radius: 28px;
-          border: 1px solid rgba(241, 235, 217, 0.4);
-          box-shadow: var(--shadow-sm);
+          min-height: 580px;
           display: flex;
           flex-direction: column;
-          overflow: hidden;
         }
 
-        .chat-panel-header {
-          padding: 20px 30px;
-          border-bottom: 1px solid #f8f6f0;
+        .chat-header {
+          padding: 20px 24px;
+          border-bottom: 1px solid #eef2f7;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          flex-shrink: 0;
+          gap: 16px;
         }
 
-        .chat-header-info {
+        .chat-title-block {
           display: flex;
           align-items: center;
-          gap: 15px;
+          gap: 12px;
         }
 
-        .chat-header-icon-box {
+        .chat-title-icon {
           width: 44px;
           height: 44px;
-          background: #eef2ff;
-          color: var(--primary-blue);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.15rem;
-        }
-
-        .chat-header-text-block {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .chat-main-title-lbl {
-          font-size: 1rem;
-          font-weight: 900;
-          color: #1e293b;
-        }
-
-        .chat-main-subtitle-lbl {
-          font-size: 0.75rem;
-          color: #64748b;
-          font-weight: 600;
-          margin-top: 2px;
-        }
-
-        .chat-header-actions {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          font-size: 1.1rem;
-          color: #64748b;
-        }
-
-        .chat-header-actions i {
-          cursor: pointer;
-        }
-
-        /* Chat Stream Area */
-        .chat-stream-scrollable {
-          flex-grow: 1;
-          overflow-y: auto;
-          padding: 30px;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          background: #fafaf7;
-        }
-
-        /* System join event log pill */
-        .system-event-log-pill {
-          align-self: center;
-          background: #f1f5f9;
-          color: #64748b;
-          font-size: 0.75rem;
-          font-weight: 700;
-          padding: 6px 16px;
           border-radius: 14px;
+          display: grid;
+          place-items: center;
+          background: #f2f8f7;
+          color: #5DA296;
         }
 
-        /* Message Bubble Container */
-        .message-bubble-wrapper {
+        .chat-title-block span {
+          display: block;
+          color: #64748b;
+          font-size: 0.78rem;
+          font-weight: 800;
+          margin-top: 3px;
+        }
+
+        .socket-status {
+          color: ${socket ? "#16a34a" : "#b91c1c"};
+          font-size: 0.8rem;
+          font-weight: 900;
+        }
+
+        .chat-stream {
+          flex: 1;
+          overflow-y: auto;
+          padding: 24px;
           display: flex;
-          gap: 12px;
-          max-width: 70%;
+          flex-direction: column;
+          gap: 16px;
+          background: #f8fafc;
         }
 
-        /* Blue Bubble Left (Others) */
-        .message-bubble-wrapper.left {
-          align-self: flex-start;
+        .system-message {
+          align-self: center;
+          background: #e2e8f0;
+          color: #64748b;
+          border-radius: 999px;
+          padding: 7px 14px;
+          font-size: 0.75rem;
+          font-weight: 900;
         }
 
-        /* Yellow Bubble Right (Current User) */
-        .message-bubble-wrapper.right {
+        .message-row {
+          display: flex;
+          gap: 10px;
+          max-width: 72%;
+          align-items: flex-start;
+        }
+
+        .message-row.mine {
           align-self: flex-end;
           flex-direction: row-reverse;
         }
 
-        .msg-avatar-container {
+        .message-row.other {
+          align-self: flex-start;
+        }
+
+        .message-avatar {
           width: 36px;
           height: 36px;
-          border-radius: 50%;
-          overflow: hidden;
           flex-shrink: 0;
         }
 
-        .msg-avatar-container img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .msg-bubble-card {
-          position: relative;
-          padding: 12px 18px;
-          border-radius: 20px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          line-height: 1.5;
-        }
-
-        /* Colors based on screens */
-        .blue-bubble {
-          background: #dbeafe;
-          color: #1e293b;
-          border-radius: 20px 0 20px 20px;
-        }
-
-        .yellow-bubble {
-          background: var(--primary-yellow-light);
-          color: #3b2a04;
-          border-radius: 0 20px 20px 20px;
-        }
-
-        .msg-sender-name {
-          font-size: 0.75rem;
-          font-weight: 850;
-          color: var(--primary-blue);
-          margin-bottom: 4px;
-          display: block;
-        }
-
-        .msg-timestamp-lbl {
-          font-size: 0.65rem;
-          color: #94a3b8;
-          font-weight: 700;
-          margin-top: 6px;
-          text-align: left;
-          display: block;
-        }
-
-        .yellow-bubble .msg-timestamp-lbl {
-          color: #786432;
-        }
-
-        /* Reaction fire floating badge */
-        .bubble-reaction-badge {
-          position: absolute;
-          bottom: -10px;
-          right: -5px;
+        .message-bubble {
           background: #ffffff;
-          border: 1px solid #cbd5e1;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.75rem;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          border: 1px solid #e2e8f0;
+          border-radius: 18px 4px 18px 18px;
+          padding: 11px 14px;
+          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
         }
 
-        /* Live typing indicator bubble style */
-        .typing-indicator-bubble {
+        .message-row.mine .message-bubble {
+          background: #5DA296;
+          color: #ffffff;
+          border-color: #5DA296;
+          border-radius: 4px 18px 18px 18px;
+        }
+
+        .message-sender {
+          display: block;
+          color: #5DA296;
+          font-size: 0.76rem;
+          font-weight: 900;
+          margin-bottom: 4px;
+        }
+
+        .message-row.mine .message-sender {
+          color: rgba(255,255,255,0.82);
+        }
+
+        .message-text {
+          font-size: 0.9rem;
+          font-weight: 700;
+          line-height: 1.55;
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
+        }
+
+        .message-time {
+          display: block;
+          margin-top: 6px;
+          color: #94a3b8;
+          font-size: 0.68rem;
+          font-weight: 800;
+          text-align: left;
+        }
+
+        .message-row.mine .message-time {
+          color: rgba(255,255,255,0.76);
+        }
+
+        .typing-line {
           align-self: flex-start;
-          background: #e2e8f0;
-          border-radius: 20px 0 20px 20px;
-          padding: 12px 18px;
+          color: #64748b;
+          font-size: 0.8rem;
+          font-weight: 900;
           display: flex;
           align-items: center;
-          gap: 4px;
-          margin-left: 48px; /* Offset avatar */
+          gap: 8px;
         }
 
-        .typing-dot {
+        .typing-dots {
+          display: inline-flex;
+          gap: 4px;
+        }
+
+        .typing-dots span {
           width: 6px;
           height: 6px;
-          background: #64748b;
           border-radius: 50%;
-          animation: dotBounce 1.4s infinite ease-in-out both;
+          background: #5DA296;
+          animation: typingPulse 1.1s infinite ease-in-out;
         }
 
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        .typing-dots span:nth-child(2) { animation-delay: 0.12s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.24s; }
 
-        @keyframes dotBounce {
-          0%, 80%, 100% { transform: scale(0); }
-          40% { transform: scale(1); }
+        @keyframes typingPulse {
+          0%, 80%, 100% { transform: scale(0.6); opacity: 0.45; }
+          40% { transform: scale(1); opacity: 1; }
         }
 
-        /* Chat Action controls box */
-        .chat-input-bar-controls {
-          padding: 20px 30px;
-          background: #ffffff;
-          border-top: 1px solid #f8f6f0;
+        .chat-form {
           display: flex;
           align-items: center;
-          gap: 15px;
+          gap: 12px;
+          padding: 18px 22px;
+          background: #ffffff;
+          border-top: 1px solid #eef2f7;
+        }
+
+        .chat-form input {
+          flex: 1;
+          min-width: 0;
+          border: 1px solid #dbe4ea;
+          background: #f8fafc;
+          border-radius: 999px;
+          padding: 14px 18px;
+          outline: none;
+          font-family: inherit;
+          font-weight: 800;
+        }
+
+        .chat-form input:focus {
+          border-color: #5DA296;
+          box-shadow: 0 0 0 3px rgba(93, 162, 150, 0.12);
+          background: #ffffff;
+        }
+
+        .chat-send {
+          border: 0;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: #5DA296;
+          color: #ffffff;
+          cursor: pointer;
+          display: grid;
+          place-items: center;
           flex-shrink: 0;
         }
 
-        .btn-chat-send {
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          background: var(--primary-blue);
-          color: #ffffff;
-          border: none;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          font-size: 1rem;
+        .chat-send:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
         }
 
-        .btn-chat-send:hover {
-          background: var(--primary-blue-dark);
+        .empty-chat {
+          margin: auto;
+          color: #64748b;
+          font-weight: 900;
+          text-align: center;
         }
 
-        .chat-input-field-wrapper {
-          flex-grow: 1;
-          position: relative;
-        }
-
-        .chat-text-input {
-          width: 100%;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 24px;
-          padding: 12px 20px 12px 100px;
-          font-family: inherit;
-          font-size: 0.85rem;
-          outline: none;
-          font-weight: 600;
-        }
-
-        .chat-text-input:focus {
-          border-color: var(--primary-blue);
-          background: #ffffff;
-        }
-
-        .chat-input-attached-icons {
-          position: absolute;
-          left: 15px;
-          top: 50%;
-          transform: translateY(-50%);
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          color: #94a3b8;
-          font-size: 1rem;
-        }
-
-        .chat-input-attached-icons i {
-          cursor: pointer;
-        }
-
-        .chat-input-attached-icons i:hover {
-          color: var(--primary-blue);
-        }
-
-        @media (max-width: 1024px) {
-          .panels-grid-container {
+        @media (max-width: 1050px) {
+          .general-chat-page {
             grid-template-columns: 1fr;
+          }
+
+          .chat-side-panel {
+            min-height: auto;
+            max-height: 260px;
           }
         }
       `}</style>
 
-        {/* Main Grid Panels container */}
-        <div className="panels-grid-container">
-          {/* Panel 1: Online Members (المتصلون الآن) */}
-          <aside className="online-list-panel">
-            <div className="panel-title-row">
-              <h3 className="panel-main-lbl">المتصلون الآن</h3>
-              <span className="online-badge-count">24</span>
-            </div>
+      <div className="general-chat-page">
+        <aside className="chat-side-panel">
+          <div className="chat-side-title">
+            <h3>المتصلون الآن</h3>
+            <span className="online-count">{onlineUsers.length}</span>
+          </div>
 
-            {/* Peers Search Box */}
-            <div className="peer-search-wrapper">
-              <i className="fa-solid fa-magnifying-glass peer-search-icon"></i>
-              <input
-                type="text"
-                className="peer-search-input"
-                placeholder="ابحث عن زملاء..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
-            </div>
+          <div className="chat-search">
+            <i className="fa-solid fa-magnifying-glass"></i>
+            <input
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              placeholder="ابحث عن طالب..."
+            />
+          </div>
 
-            {/* Online Scroll list */}
-            <div className="online-users-scrollable">
-              {filteredPeers.map((peer) => (
-                <div className="online-peer-card" key={peer.id}>
-                  <div className="peer-avatar-wrapper">
-                    <div className="peer-avatar-img">
-                      <img src={peer.avatar} alt={peer.name} />
-                    </div>
-                    <div className="online-light-dot"></div>
-                  </div>
-                  <div className="peer-info-sub">
-                    <span className="peer-name-lbl">{peer.name}</span>
-                    <span className={`peer-status-lbl ${peer.isTyping ? "typing" : ""}`}>{peer.status}</span>
-                  </div>
+          <div className="online-list">
+            {filteredUsers.map((user) => (
+              <div className="online-user" key={`${user.id}-${user.name}`}>
+                <div className="user-avatar-wrap">
+                  <img src={user.avatar || fallbackAvatar} alt={user.name} />
+                  <span className="online-dot"></span>
                 </div>
-              ))}
-            </div>
-
-            <div className="btn-view-all-members" onClick={() => alert("عرض قائمة جميع أعضاء المنصة")}>
-              مشاهدة جميع الأعضاء
-            </div>
-          </aside>
-
-          {/* Panel 2: Chat Box (الدردشة العامة) */}
-          <section className="chat-main-panel">
-            {/* Header info */}
-            <div className="chat-panel-header">
-              <div className="chat-header-info">
-                <div className="chat-header-icon-box">
-                  <i className="fa-solid fa-users-line"></i>
-                </div>
-                <div className="chat-header-text-block">
-                  <h3 className="chat-main-title-lbl">الدردشة العامة</h3>
-                  <span className="chat-main-subtitle-lbl">مجتمع الطلاب - ساحة الحوار المفتوحة</span>
+                <div>
+                  <strong>{user.name}</strong>
+                  <span>{typingUsers[user.id] ? "يكتب الآن..." : "متصل"}</span>
                 </div>
               </div>
+            ))}
+          </div>
+        </aside>
 
-              <div className="chat-header-actions">
-                <i className="fa-solid fa-circle-info" title="معلومات المجموعة" onClick={() => alert("غرفة الدردشة العامة لطلاب منصة أجي تقرا.")}></i>
-                <i className="fa-solid fa-ellipsis-vertical" style={{ marginRight: "10px" }} onClick={() => alert("خيارات إضافية")}></i>
+        <section className="chat-main-panel">
+          <header className="chat-header">
+            <div className="chat-title-block">
+              <div className="chat-title-icon">
+                <i className="fa-solid fa-comments"></i>
+              </div>
+              <div>
+                <h3>الدردشة العامة</h3>
+                <span>رسائل مباشرة بين الطلاب عبر Socket.IO</span>
               </div>
             </div>
+            <div className="socket-status">
+              {socket ? "متصل مباشر" : "غير متصل"}
+            </div>
+          </header>
 
-            {/* Stream Scrollable */}
-            <div className="chat-stream-scrollable">
-              {messages.map((msg) => {
-                if (msg.type === "system") {
-                  return (
-                    <div className="system-event-log-pill" key={msg.id}>
-                      {msg.text}
+          <div className="chat-stream">
+            {messages.length ? messages.map((message) => {
+              if (message.type === "system") {
+                return <div className="system-message" key={message.id}>{message.text}</div>;
+              }
+
+              const isMine = message.sender?.id === currentUser.id;
+              return (
+                <div className={`message-row ${isMine ? "mine" : "other"}`} key={message.id}>
+                  {!isMine && (
+                    <div className="message-avatar">
+                      <img src={message.sender?.avatar || fallbackAvatar} alt={message.sender?.name || "طالب"} />
                     </div>
-                  );
-                }
-
-                const isCurrentUser = msg.type === "user-current";
-                return (
-                  <div className={`message-bubble-wrapper ${isCurrentUser ? "right" : "left"}`} key={msg.id}>
-                    {!isCurrentUser && (
-                      <div className="msg-avatar-container">
-                        <img src={msg.avatar} alt={msg.sender} />
-                      </div>
-                    )}
-                    <div className={`msg-bubble-card ${msg.bgClass}`}>
-                      {!isCurrentUser && <span className="msg-sender-name">{msg.sender}</span>}
-                      <span>{msg.text}</span>
-                      <span className="msg-timestamp-lbl">{msg.time}</span>
-
-                      {/* Fire reaction */}
-                      {msg.reaction && <span className="bubble-reaction-badge">{msg.reaction}</span>}
-                    </div>
+                  )}
+                  <div className="message-bubble">
+                    <span className="message-sender">{isMine ? "أنت" : message.sender?.name || "طالب"}</span>
+                    <div className="message-text">{message.text}</div>
+                    <span className="message-time">{formatTime(message.createdAt)}</span>
                   </div>
-                );
-              })}
-
-              {/* Live typing indicator */}
-              {isTyping && (
-                <div className="typing-indicator-bubble">
-                  <div className="typing-dot"></div>
-                  <div className="typing-dot"></div>
-                  <div className="typing-dot"></div>
                 </div>
-              )}
-
-              <div ref={chatBottomRef} />
-            </div>
-
-            {/* Input Bar */}
-            <form onSubmit={handleSendMessage} className="chat-input-bar-controls">
-              {/* Send Button */}
-              <button type="submit" className="btn-chat-send" title="إرسال الرسالة">
-                <i className="fa-solid fa-paper-plane" style={{ transform: "rotate(180deg)" }}></i>
-              </button>
-
-              {/* Text Input area */}
-              <div className="chat-input-field-wrapper">
-                <input
-                  type="text"
-                  className="chat-text-input"
-                  placeholder="اكتب رسالتك هنا..."
-                  value={inputVal}
-                  onChange={(e) => setInputVal(e.target.value)}
-                />
-
-                <div className="chat-input-attached-icons">
-                  <i className="fa-solid fa-face-smile" onClick={() => alert("فتح قائمة الإيموجي 😊")}></i>
-                  <i className="fa-solid fa-paperclip" onClick={() => alert("إرفاق ملف أو صورة 📎")}></i>
-                  <i className="fa-solid fa-microphone" onClick={() => alert("تسجيل مقطع صوتي 🎙️")}></i>
-                </div>
+              );
+            }) : (
+              <div className="empty-chat">
+                لا توجد رسائل بعد. ابدأ المحادثة الآن.
               </div>
-            </form>
-          </section>
-        </div>
+            )}
 
-      </>
-    );
-  };
+            {typingList.length > 0 && (
+              <div className="typing-line">
+                <span>{typingList.map((user) => user.name).join("، ")} يكتب</span>
+                <span className="typing-dots"><span></span><span></span><span></span></span>
+              </div>
+            )}
+
+            <div ref={chatBottomRef}></div>
+          </div>
+
+          <form className="chat-form" onSubmit={handleSendMessage}>
+            <input
+              value={inputVal}
+              onChange={handleInputChange}
+              placeholder={socket ? "اكتب رسالتك هنا..." : "انتظر الاتصال بالخادم..."}
+              disabled={!socket}
+            />
+            <button className="chat-send" type="submit" disabled={!socket || !inputVal.trim()} title="إرسال">
+              <i className="fa-solid fa-paper-plane" style={{ transform: "rotate(180deg)" }}></i>
+            </button>
+          </form>
+        </section>
+      </div>
+    </>
+  );
+};
 
 export default GeneralChat;

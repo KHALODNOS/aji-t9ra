@@ -17,12 +17,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const token = localStorage.getItem('token');
         const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-        if (token && user._id) {
+        const userId = user._id || user.id;
+
+        if (token && userId) {
             const newSocket = io('http://localhost:5000');
             
             newSocket.on('connect', () => {
                 console.log('Connected to socket server');
-                newSocket.emit('join', user._id);
+                newSocket.emit('join', userId);
             });
 
             newSocket.on('notification', (notification) => {
