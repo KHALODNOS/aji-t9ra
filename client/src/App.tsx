@@ -7,6 +7,7 @@ import UserManagement from './pages/admin/UserManagement';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ContentReview from './pages/admin/ContentReview';
 import TechnicalSupport from './pages/admin/TechnicalSupport';
+import AdminGeneralChat from './pages/admin/AdminGeneralChat';
 import LOADINGPAGE from './pages/common/LOADINGPAGE';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
@@ -78,6 +79,14 @@ function App() {
         />
         <Route
           path="/admin/support"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminGeneralChat />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/teacher-support"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <TechnicalSupport />

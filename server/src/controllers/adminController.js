@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Content = require("../models/Content");
 const Story = require("../models/Story");
+const SupportRequest = require("../models/SupportRequest");
 
 // Get all pending teachers
 exports.getPendingTeachers = async (req, res) => {
@@ -100,6 +101,43 @@ exports.getDashboardStats = async (req, res) => {
             pendingTeachers,
             pendingStories
         });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+exports.getSupportRequests = async (req, res) => {
+    try {
+        const { status } = req.query;
+        const filter = {};
+        if (status && status !== "all") filter.status = status;
+
+        const requests = await SupportRequest.find(filter)
+            .populate("teacher", "username fullName email PhoneNumber photoProfile avatarUrl")
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json(requests);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+exports.updateSupportRequestStatus = async (req, res) => {
+    try {
+        const { status } = req.body;
+        if (!["open", "in_progress", "resolved"].includes(status)) {
+            return res.status(400).json({ message: "Invalid support request status" });
+        }
+
+        const request = await SupportRequest.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true }
+        ).populate("teacher", "username fullName email PhoneNumber photoProfile avatarUrl");
+
+        if (!request) return res.status(404).json({ message: "Support request not found" });
+
+        return res.status(200).json(request);
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }

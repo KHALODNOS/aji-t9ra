@@ -5,7 +5,8 @@ import {
   Users, 
   FileText, 
   Globe, 
-  HeadphonesIcon, 
+  HeadphonesIcon,
+  MessageCircle,
   LogOut,
   Bell
 } from 'lucide-react';
@@ -27,7 +28,8 @@ const AdminSidebar = () => {
     { name: 'إدارة المستخدمين', icon: Users, path: '/admin/users' },
     { name: 'مراجعة المحتوى', icon: FileText, path: '/admin/content-review' },
     { name: 'إعدادات اللغة', icon: Globe, path: '/admin/settings' },
-    { name: 'الدعم الفني', icon: HeadphonesIcon, path: '/admin/support' },
+    { name: 'الدردشة العامة', icon: MessageCircle, path: '/admin/support' },
+    { name: 'الدعم الفني', icon: HeadphonesIcon, path: '/admin/teacher-support' },
   ];
 
   return (

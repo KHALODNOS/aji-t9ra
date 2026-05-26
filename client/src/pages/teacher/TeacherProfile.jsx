@@ -161,7 +161,11 @@ const TeacherProfile = () => {
     }
     try {
       setSaving(true);
-      await api.post("/user/support", supportForm);
+      await api.post("/user/support", {
+        ...supportForm,
+        email: profile.email,
+        phone: profile.PhoneNumber,
+      });
       toast.success("تم إرسال طلبك للإدارة الفنية بنجاح، سيتم الرد قريباً! 💬");
       setSupportForm({ subject: "", message: "", priority: "normal" });
     } catch (error) {
@@ -978,7 +982,7 @@ const TeacherProfile = () => {
                         >
                           <option value="normal">عادي (Normal)</option>
                           <option value="high">مستعجل (High)</option>
-                          <option value="critical">حرِج جداً وطارئ (Critical)</option>
+                          <option value="urgent">حرِج جداً وطارئ (Urgent)</option>
                         </select>
                       </div>
                       <div>

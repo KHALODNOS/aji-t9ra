@@ -15,6 +15,8 @@ router.delete("/reject-teacher/:userId", adminController.rejectTeacher);
 router.get("/users", adminController.getAllUsers);
 router.put("/toggle-status/:userId", adminController.toggleUserStatus);
 router.get("/stats", adminController.getDashboardStats);
+router.get("/support-requests", adminController.getSupportRequests);
+router.put("/support-requests/:id/status", adminController.updateSupportRequestStatus);
 
 // Content Review Routes
 router.get("/pending-content", adminController.getPendingContent);

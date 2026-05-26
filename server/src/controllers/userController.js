@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const SupportRequest = require("../models/SupportRequest");
 const { broadcastToAdmins } = require("../utils/socket");
 const bcrypt = require("bcryptjs");
 
@@ -86,11 +87,20 @@ exports.changePassword = async (req, res) => {
 // Submit support contact request
 exports.submitSupportRequest = async (req, res) => {
     try {
-        const { subject, message, email, phone } = req.body;
+        const { subject, message, email, phone, priority = "normal" } = req.body;
 
         if (!subject || !message) {
             return res.status(400).json({ message: "يرجى تعبئة موضوع الرسالة ومحتواها" });
         }
+
+        const supportRequest = await SupportRequest.create({
+            teacher: req.user._id,
+            subject,
+            message,
+            email,
+            phone,
+            priority
+        });
 
         // Create an admin notification
         const notification = new Notification({
@@ -99,7 +109,7 @@ exports.submitSupportRequest = async (req, res) => {
             type: "system",
             message: `طلب دعم فني جديد من الأستاذ ${req.user.username || req.user.email}: ${subject}`,
             data: {
-                contentId: req.user._id // reference user ID
+                contentId: supportRequest._id
             }
         });
         await notification.save();
