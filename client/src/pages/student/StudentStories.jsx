@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import ReactDOM from "react-dom";
 import api from "../../services/api";
 import { publishStudentRewards } from "../../utils/studentRewards";
 
@@ -1347,12 +1348,15 @@ const StudentStories = ({ onOpenJourney }) => {
 
       {toast && <div className="toast-save">{toast}</div>}
 
-      {wordPopup && (
+      {wordPopup && ReactDOM.createPortal(
         <>
-          <div className="word-popup-overlay" onClick={closePopup} />
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 99998 }}
+            onClick={closePopup}
+          />
           <div
             className="word-popup"
-            style={{ left: wordPopup.x, top: wordPopup.y }}
+            style={{ left: wordPopup.x, top: wordPopup.y, zIndex: 99999 }}
           >
             <div className="word-popup-word">{wordPopup.word}</div>
             <div className="word-popup-actions">
@@ -1383,7 +1387,8 @@ const StudentStories = ({ onOpenJourney }) => {
               <i className="fa-solid fa-xmark"></i>
             </button>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </>
   );
