@@ -354,12 +354,12 @@ exports.getJourney = async (req, res) => {
         thumbnail: quiz.thumbnail || quiz.storyId?.coverImage,
         story: quiz.storyId
           ? {
-              id: quiz.storyId._id,
-              title: quiz.storyId.title,
-              coverImage: quiz.storyId.coverImage,
-              level: quiz.storyId.level,
-              language: quiz.storyId.language,
-            }
+            id: quiz.storyId._id,
+            title: quiz.storyId.title,
+            coverImage: quiz.storyId.coverImage,
+            level: quiz.storyId.level,
+            language: quiz.storyId.language,
+          }
           : null,
         questionsCount: quiz.questions.length,
         questions: quiz.questions.map((question, index) => ({
@@ -677,10 +677,10 @@ exports.getStories = async (req, res) => {
       xp: story.personality?.xp || 50,
       teacher: story.teacher
         ? {
-            id: story.teacher._id,
-            name: story.teacher.fullName || story.teacher.username || "أستاذ",
-            avatar: story.teacher.photoProfile || story.teacher.avatar,
-          }
+          id: story.teacher._id,
+          name: story.teacher.fullName || story.teacher.username || "أستاذ",
+          avatar: story.teacher.photoProfile || story.teacher.avatar,
+        }
         : null,
       progress: progressByStory.get(String(story._id)) || (completedAtByStory.has(String(story._id)) ? 100 : 0),
       completedAt: completedAtByStory.get(String(story._id)) || null,
@@ -688,6 +688,108 @@ exports.getStories = async (req, res) => {
     })));
   } catch (error) {
     return res.status(500).json({ message: "Error fetching student stories", error: error.message });
+  }
+};
+
+const ELEVENLABS_LANGUAGE_CODES = {
+  Arabic: "ar",
+  French: "fr",
+  English: "en",
+};
+
+const splitTextForSpeech = (text, maxLength = 4200) => {
+  const normalized = String(text || "").replace(/\r\n/g, "\n").trim();
+  if (!normalized) return [];
+
+  const chunks = [];
+  let remaining = normalized;
+
+  while (remaining.length > maxLength) {
+    const slice = remaining.slice(0, maxLength);
+    const breakAt = Math.max(
+      slice.lastIndexOf("\n\n"),
+      slice.lastIndexOf(". "),
+      slice.lastIndexOf("! "),
+      slice.lastIndexOf("? "),
+      slice.lastIndexOf("؟ "),
+      slice.lastIndexOf("، ")
+    );
+    const end = breakAt > maxLength * 0.5 ? breakAt + 1 : maxLength;
+    chunks.push(remaining.slice(0, end).trim());
+    remaining = remaining.slice(end).trim();
+  }
+
+  if (remaining) chunks.push(remaining);
+  return chunks;
+};
+
+exports.generateStorySpeech = async (req, res) => {
+  try {
+    const { storyId } = req.params;
+    const story = await Story.findOne({ _id: storyId, status: "approved" }).select("title language content");
+
+    if (!story) {
+      return res.status(404).json({ message: "Approved story not found" });
+    }
+
+    if (!process.env.ELEVENLABS_API_KEY) {
+      return res.status(500).json({ message: "ElevenLabs API key is not configured" });
+    }
+
+    const chunks = splitTextForSpeech(story.content);
+    if (!chunks.length) {
+      return res.status(400).json({ message: "Story has no text to read" });
+    }
+
+    const voiceId = process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM";
+    const modelId = process.env.ELEVENLABS_MODEL_ID || "eleven_multilingual_v2";
+    const languageCode = ELEVENLABS_LANGUAGE_CODES[story.language];
+    const audioBuffers = [];
+
+    for (const text of chunks) {
+      const body = {
+        text,
+        model_id: modelId,
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75,
+        },
+      };
+
+      if (languageCode) {
+        body.language_code = languageCode;
+      }
+
+      const elevenResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: "POST",
+        headers: {
+          "xi-api-key": process.env.ELEVENLABS_API_KEY,
+          "Content-Type": "application/json",
+          Accept: "audio/mpeg",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!elevenResponse.ok) {
+        const errorText = await elevenResponse.text();
+        console.error("ElevenLabs TTS error:", errorText);
+        return res.status(elevenResponse.status).json({ message: "Could not generate story audio" });
+      }
+
+      audioBuffers.push(Buffer.from(await elevenResponse.arrayBuffer()));
+    }
+
+    const fileName = `${story.title || "story"}`.replace(/[^\w.-]+/g, "_").slice(0, 80) || "story";
+    res.set({
+      "Content-Type": "audio/mpeg",
+      "Content-Disposition": `inline; filename="${fileName}.mp3"`,
+      "Cache-Control": "no-store",
+    });
+
+    return res.send(Buffer.concat(audioBuffers));
+  } catch (error) {
+    console.error("Error generating story speech:", error);
+    return res.status(500).json({ message: "Error generating story speech", error: error.message });
   }
 };
 
@@ -733,11 +835,11 @@ exports.submitQuizAttempt = async (req, res) => {
     const passed = score >= QUIZ_PASSING_SCORE;
     const xpAwarded = passed
       ? awardXp(progress, {
-          amount: exam.xpReward || 0,
-          source: "quiz_pass",
-          sourceId: examId,
-          reason: "Quiz passed",
-        })
+        amount: exam.xpReward || 0,
+        source: "quiz_pass",
+        sourceId: examId,
+        reason: "Quiz passed",
+      })
       : 0;
 
     progress.quizAttempts.push({ exam: examId, score, completedAt: new Date(), xpAwarded });
@@ -796,12 +898,12 @@ exports.getQuizzes = async (req, res) => {
         thumbnail: quiz.thumbnail || quiz.storyId?.coverImage,
         story: quiz.storyId
           ? {
-              id: quiz.storyId._id,
-              title: quiz.storyId.title,
-              coverImage: quiz.storyId.coverImage,
-              level: quiz.storyId.level,
-              language: quiz.storyId.language,
-            }
+            id: quiz.storyId._id,
+            title: quiz.storyId.title,
+            coverImage: quiz.storyId.coverImage,
+            level: quiz.storyId.level,
+            language: quiz.storyId.language,
+          }
           : null,
         questionsCount: quiz.questions.length,
         bestScore,

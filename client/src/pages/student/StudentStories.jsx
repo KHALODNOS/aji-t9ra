@@ -33,6 +33,8 @@ const StudentStories = ({ onOpenJourney }) => {
   const [readerProgress, setReaderProgress] = useState(0);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
+  const [speechStatus, setSpeechStatus] = useState("idle");
+  const [speechError, setSpeechError] = useState("");
   const [readerPrefs, setReaderPrefs] = useState({
     fontFamily: "'Tajawal', sans-serif",
     fontSize: 20,
@@ -42,6 +44,23 @@ const StudentStories = ({ onOpenJourney }) => {
   });
   const [showReaderSettings, setShowReaderSettings] = useState(false);
   const readerRef = useRef(null);
+  const storyAudioRef = useRef(null);
+  const storyAudioUrlRef = useRef("");
+
+  const stopStoryAudio = () => {
+    if (storyAudioRef.current) {
+      storyAudioRef.current.pause();
+      storyAudioRef.current.src = "";
+      storyAudioRef.current = null;
+    }
+
+    if (storyAudioUrlRef.current) {
+      URL.revokeObjectURL(storyAudioUrlRef.current);
+      storyAudioUrlRef.current = "";
+    }
+
+    setSpeechStatus("idle");
+  };
 
   useEffect(() => {
     const savedPrefs = localStorage.getItem("storyReaderPrefs");
@@ -78,11 +97,15 @@ const StudentStories = ({ onOpenJourney }) => {
 
   useEffect(() => {
     if (!selectedStory) return;
+    stopStoryAudio();
+    setSpeechError("");
     setReaderProgress(selectedStory.progress || 0);
     requestAnimationFrame(() => {
       if (readerRef.current) readerRef.current.scrollTop = 0;
     });
-  }, [selectedStory]);
+  }, [selectedStory?.id]);
+
+  useEffect(() => () => stopStoryAudio(), []);
 
   const languages = useMemo(() => {
     const values = new Set(stories.map((story) => story.language).filter(Boolean));
@@ -158,6 +181,46 @@ const StudentStories = ({ onOpenJourney }) => {
     }
   };
 
+  const handleListenToStory = async () => {
+    if (!selectedStory || !selectedStory.audioUrl) return;
+
+    if (storyAudioRef.current && speechStatus === "playing") {
+      storyAudioRef.current.pause();
+      setSpeechStatus("paused");
+      return;
+    }
+
+    if (storyAudioRef.current && speechStatus === "paused") {
+      await storyAudioRef.current.play();
+      setSpeechStatus("playing");
+      return;
+    }
+
+    setSpeechStatus("loading");
+    setSpeechError("");
+
+    try {
+      const audioUrl = getMediaUrl(selectedStory.audioUrl);
+      const audio = new Audio(audioUrl);
+
+      stopStoryAudio();
+      storyAudioRef.current = audio;
+
+      audio.onended = () => setSpeechStatus("idle");
+      audio.onerror = () => {
+        setSpeechStatus("idle");
+        setSpeechError("تعذر تشغيل الصوت. حاول مرة أخرى.");
+      };
+
+      await audio.play();
+      setSpeechStatus("playing");
+    } catch (err) {
+      console.error("Error generating story speech:", err);
+      stopStoryAudio();
+      setSpeechError("تعذر تشغيل الصوت.");
+    }
+  };
+
   const handleReaderScroll = () => {
     const element = readerRef.current;
     if (!element || !selectedStory) return;
@@ -170,6 +233,75 @@ const StudentStories = ({ onOpenJourney }) => {
 
     const percent = Math.min(100, Math.max(0, Math.round((element.scrollTop / maxScroll) * 100)));
     setReaderProgress(Math.max(selectedStory.progress || 0, percent));
+  };
+
+  const [wordPopup, setWordPopup] = useState(null); // { word, x, y, translation, loading }
+
+  const getStoryLang = () => {
+    if (!selectedStory) return 'fr-FR';
+    if (selectedStory.language === 'English') return 'en-US';
+    if (selectedStory.language === 'Tamazight') return 'ber';
+    return 'fr-FR';
+  };
+
+  const speakWord = (word) => {
+    if (!word) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.lang = getStoryLang();
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const translateWord = async (word) => {
+    setWordPopup((prev) => ({ ...prev, loading: true, translation: null, error: null }));
+    try {
+      const langPair = selectedStory?.language === 'English' ? 'en|ar' : 'fr|ar';
+      const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=${langPair}`);
+      const data = await res.json();
+      const translation = data?.responseData?.translatedText;
+      setWordPopup((prev) => prev ? { ...prev, loading: false, translation: translation || '—' } : null);
+    } catch {
+      setWordPopup((prev) => prev ? { ...prev, loading: false, error: 'فشل الترجمة' } : null);
+    }
+  };
+
+  const handleWordClick = (e, word) => {
+    const clean = word.replace(/[^\u0600-\u06FFa-zA-ZÀ-ÿ\-']/g, '').trim();
+    if (!clean) return;
+    const rect = e.target.getBoundingClientRect();
+    setWordPopup({ word: clean, x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY + 8, translation: null, loading: false, error: null });
+    translateWord(clean);
+  };
+
+  const closePopup = () => setWordPopup(null);
+
+  const renderClickableText = (text) => {
+    if (!text) return null;
+    return text.split(/\n+/).map((paragraph, pi) => (
+      <p key={pi} style={{ marginBottom: '1.4em' }}>
+        {paragraph.split(' ').map((word, wi) => (
+          <span
+            key={wi}
+            className="story-word"
+            onClick={(e) => handleWordClick(e, word)}
+          >
+            {word}{' '}
+          </span>
+        ))}
+      </p>
+    ));
+  };
+
+  const handleVocabClick = (word) => {
+    if (!word) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(word);
+
+    if (selectedStory.language === "French") utterance.lang = 'fr-FR';
+    else if (selectedStory.language === "English") utterance.lang = 'en-US';
+    else if (selectedStory.language === "Arabic") utterance.lang = 'ar-SA';
+
+    window.speechSynthesis.speak(utterance);
   };
 
   const updatePrefs = (key, value) => {
@@ -630,30 +762,143 @@ const StudentStories = ({ onOpenJourney }) => {
 
         .reader-text {
           white-space: pre-wrap;
-          color: #172033;
-          max-width: 860px;
+          color: #334155;
+          max-width: 800px;
           margin: 0 auto;
-          font-weight: 700;
-          background: rgba(255, 255, 255, 0.92);
-          border: 1px solid rgba(226, 232, 240, 0.95);
-          border-radius: 28px;
-          padding: clamp(28px, 5vw, 64px);
-          box-shadow: 0 24px 70px rgba(15, 23, 42, 0.11);
+          font-weight: 500;
+          background: #ffffff;
+          border: none;
+          border-radius: 16px;
+          padding: clamp(32px, 5vw, 80px);
+          box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
           min-height: 68vh;
+          transition: all 0.3s ease;
         }
 
         .reader-theme-warm .reader-text {
-          background: #fff9ef;
-          border-color: #ead8bd;
-          color: #2f2418;
-          box-shadow: 0 24px 70px rgba(120, 83, 38, 0.12);
+          background: #fffbf0;
+          color: #4c4031;
+          box-shadow: 0 10px 40px -10px rgba(120, 83, 38, 0.08);
         }
 
         .reader-theme-dark .reader-text {
+          background: #1e293b;
+          color: #cbd5e1;
+          box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.3);
+        }
+
+        .story-vocabulary-bank {
+          max-width: 800px;
+          margin: 40px auto 0;
+          padding: 30px;
+          background: rgba(255, 255, 255, 0.92);
+          border-radius: 20px;
+          box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
+        }
+
+        .reader-theme-warm .story-vocabulary-bank {
+          background: #fffbf0;
+          box-shadow: 0 10px 40px -10px rgba(120, 83, 38, 0.08);
+        }
+
+        .reader-theme-dark .story-vocabulary-bank {
+          background: #1e293b;
+          box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.3);
+        }
+
+        .vocab-title {
+          font-weight: 900;
+          font-size: 1.2rem;
+          color: #00458b;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .reader-theme-dark .vocab-title {
+          color: #93c5fd;
+        }
+
+        .vocab-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 16px;
+        }
+
+        .vocab-card {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 16px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .vocab-card:hover {
+          border-color: #00458b;
+          background: #eff6ff;
+          transform: translateY(-2px);
+        }
+
+        .reader-theme-warm .vocab-card {
+          background: #fdf6e3;
+          border-color: #ead8bd;
+        }
+
+        .reader-theme-dark .vocab-card {
           background: #0f172a;
           border-color: #334155;
+        }
+
+        .reader-theme-dark .vocab-card:hover {
+          background: #1e293b;
+          border-color: #93c5fd;
+        }
+
+        .vocab-word {
+          font-weight: 800;
+          color: #172033;
+          font-size: 1.1rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .reader-theme-dark .vocab-word {
           color: #e5e7eb;
-          box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+        }
+
+        .vocab-translation {
+          color: #64748b;
+          font-weight: 700;
+          font-size: 0.9rem;
+        }
+
+        .reader-theme-dark .vocab-translation {
+          color: #cbd5e1;
+        }
+
+        .vocab-voice-btn {
+          background: none;
+          border: none;
+          color: #00458b;
+          cursor: pointer;
+          font-size: 1.1rem;
+          padding: 4px;
+          opacity: 0.6;
+          transition: opacity 0.2s;
+        }
+
+        .vocab-card:hover .vocab-voice-btn {
+          opacity: 1;
+        }
+
+        .reader-theme-dark .vocab-voice-btn {
+          color: #93c5fd;
         }
 
         .reader-footer {
@@ -694,6 +939,32 @@ const StudentStories = ({ onOpenJourney }) => {
           cursor: pointer;
         }
 
+        .reader-audio-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .reader-audio-btn.active {
+          border-color: #00458b;
+          color: #00458b;
+          background: #eff6ff;
+        }
+
+        .reader-audio-error {
+          color: #b91c1c;
+          font-size: 0.76rem;
+          font-weight: 900;
+          align-self: center;
+        }
+
+        .reader-theme-dark .reader-audio-btn.active {
+          background: #0f172a;
+          border-color: #93c5fd;
+          color: #93c5fd;
+        }
+
         .reader-theme-dark .reader-secondary-btn {
           background: #111827;
           border-color: #334155;
@@ -723,29 +994,132 @@ const StudentStories = ({ onOpenJourney }) => {
         }
 
         @media (max-width: 820px) {
-          .stories-toolbar {
-            grid-template-columns: 1fr;
-          }
-          .stories-search {
-            width: 100%;
-          }
-          .stories-grid {
-            grid-template-columns: 1fr;
-          }
-          .reader-minimal-topbar, .reader-footer {
-            align-items: stretch;
-            flex-direction: column;
-          }
-          .reader-controls {
-            grid-template-columns: 1fr;
-          }
-          .reader-content {
-            padding: 24px;
-          }
-          .reader-live-title {
-            max-width: 70vw;
-          }
+          .stories-toolbar { grid-template-columns: 1fr; }
+          .stories-search { width: 100%; }
+          .stories-grid { grid-template-columns: 1fr; }
+          .reader-minimal-topbar, .reader-footer { align-items: stretch; flex-direction: column; }
+          .reader-controls { grid-template-columns: 1fr; }
+          .reader-content { padding: 24px; }
+          .reader-live-title { max-width: 70vw; }
         }
+
+        .story-word {
+          cursor: pointer;
+          border-radius: 4px;
+          padding: 1px 3px;
+          transition: background 0.15s, color 0.15s;
+          display: inline;
+        }
+        .story-word:hover {
+          background: rgba(0, 69, 139, 0.12);
+          color: #00458b;
+        }
+        .reader-theme-dark .story-word:hover {
+          background: rgba(147, 197, 253, 0.18);
+          color: #93c5fd;
+        }
+        .reader-theme-warm .story-word:hover {
+          background: rgba(212, 149, 60, 0.13);
+          color: #92580e;
+        }
+
+        .word-popup-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 1200;
+        }
+        .word-popup {
+          position: fixed;
+          z-index: 1300;
+          transform: translateX(-50%);
+          background: rgba(255,255,255,0.97);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(226,232,240,0.9);
+          border-radius: 20px;
+          padding: 20px;
+          min-width: 260px;
+          max-width: 320px;
+          box-shadow: 0 20px 60px -10px rgba(0,0,0,0.18);
+          animation: popupIn 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+          direction: rtl;
+        }
+        @keyframes popupIn {
+          from { opacity: 0; transform: translateX(-50%) scale(0.85); }
+          to   { opacity: 1; transform: translateX(-50%) scale(1); }
+        }
+        .word-popup-word {
+          font-size: 1.4rem;
+          font-weight: 900;
+          color: #172033;
+          margin-bottom: 14px;
+          padding-bottom: 12px;
+          border-bottom: 2px solid #f1f5f9;
+          text-align: center;
+        }
+        .word-popup-actions {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 14px;
+        }
+        .word-popup-btn {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          border: none;
+          border-radius: 12px;
+          padding: 10px 12px;
+          font-size: 0.82rem;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: inherit;
+        }
+        .word-popup-btn.listen {
+          background: #eff6ff;
+          color: #1d4ed8;
+          border: 1.5px solid #bfdbfe;
+        }
+        .word-popup-btn.listen:hover { background: #1d4ed8; color: white; }
+        .word-popup-btn.translate {
+          background: #f0fdf4;
+          color: #15803d;
+          border: 1.5px solid #bbf7d0;
+        }
+        .word-popup-btn.translate:hover:not(:disabled) { background: #15803d; color: white; }
+        .word-popup-btn:disabled { opacity: 0.6; cursor: wait; }
+        .word-popup-result {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: linear-gradient(135deg, #f8fafc, #eff6ff);
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 12px 14px;
+          margin-bottom: 10px;
+        }
+        .word-popup-arrow { font-size: 1.1rem; color: #6366f1; flex-shrink: 0; }
+        .word-popup-translation { font-size: 1.1rem; font-weight: 800; color: #172033; direction: rtl; }
+        .word-popup-error { color: #b91c1c; font-size: 0.82rem; font-weight: 700; text-align: center; margin-bottom: 6px; }
+        .word-popup-close {
+          position: absolute;
+          top: 10px;
+          left: 12px;
+          background: #f1f5f9;
+          border: none;
+          border-radius: 50%;
+          width: 28px;
+          height: 28px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #64748b;
+          font-size: 0.85rem;
+          transition: background 0.15s;
+        }
+        .word-popup-close:hover { background: #e2e8f0; color: #1e293b; }
       `}</style>
 
       {selectedStory ? (
@@ -834,7 +1208,7 @@ const StudentStories = ({ onOpenJourney }) => {
           </div>
 
           <div className="reader-content" ref={readerRef} onScroll={handleReaderScroll}>
-            <p
+            <div
               className="reader-text"
               style={{
                 fontFamily: readerPrefs.fontFamily,
@@ -843,8 +1217,29 @@ const StudentStories = ({ onOpenJourney }) => {
                 letterSpacing: `${readerPrefs.letterSpacing}px`,
               }}
             >
-              {selectedStory.content}
-            </p>
+              {renderClickableText(selectedStory.content)}
+            </div>
+
+            {selectedStory.vocabulary && selectedStory.vocabulary.length > 0 && (
+              <div className="story-vocabulary-bank">
+                <h3 className="vocab-title">
+                  <i className="fa-solid fa-book-open-reader"></i> بنك الكلمات
+                </h3>
+                <div className="vocab-grid">
+                  {selectedStory.vocabulary.map((vocab, index) => (
+                    <div className="vocab-card" key={index} onClick={() => speakWord(vocab.word)}>
+                      <div className="vocab-word">
+                        {vocab.word}
+                        <button className="vocab-voice-btn" title="استمع للكلمة">
+                          <i className="fa-solid fa-volume-high"></i>
+                        </button>
+                      </div>
+                      <div className="vocab-translation">{vocab.translation}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <footer className="reader-footer">
@@ -852,6 +1247,18 @@ const StudentStories = ({ onOpenJourney }) => {
               يتم حساب التقدم حسب مكان وصولك في النص.
             </span>
             <div className="reader-footer-actions">
+              {selectedStory.audioUrl && (
+                <button
+                  className={`reader-secondary-btn reader-audio-btn ${speechStatus === "playing" ? "active" : ""}`}
+                  onClick={handleListenToStory}
+                  disabled={speechStatus === "loading"}
+                  title="استمع إلى القصة"
+                >
+                  <i className={`fa-solid ${speechStatus === "loading" ? "fa-circle-notch fa-spin" : speechStatus === "playing" ? "fa-pause" : "fa-volume-high"}`}></i>
+                  {speechStatus === "loading" ? "جاري التحميل..." : speechStatus === "playing" ? "إيقاف مؤقت" : speechStatus === "paused" ? "متابعة الاستماع" : "استمع للقصة"}
+                </button>
+              )}
+              {speechError && <span className="reader-audio-error">{speechError}</span>}
               <button className="reader-secondary-btn" onClick={() => saveProgress(readerProgress)} disabled={saving}>
                 {saving ? "جاري الحفظ..." : "حفظ التقدم"}
               </button>
@@ -939,6 +1346,45 @@ const StudentStories = ({ onOpenJourney }) => {
       )}
 
       {toast && <div className="toast-save">{toast}</div>}
+
+      {wordPopup && (
+        <>
+          <div className="word-popup-overlay" onClick={closePopup} />
+          <div
+            className="word-popup"
+            style={{ left: wordPopup.x, top: wordPopup.y }}
+          >
+            <div className="word-popup-word">{wordPopup.word}</div>
+            <div className="word-popup-actions">
+              <button
+                className="word-popup-btn listen"
+                onClick={() => speakWord(wordPopup.word)}
+              >
+                <i className="fa-solid fa-volume-high"></i>
+                استمع للكلمة
+              </button>
+              <button
+                className="word-popup-btn translate"
+                onClick={() => translateWord(wordPopup.word)}
+                disabled={wordPopup.loading}
+              >
+                <i className={`fa-solid ${wordPopup.loading ? 'fa-circle-notch fa-spin' : 'fa-language'}`}></i>
+                ترجم إلى العربية
+              </button>
+            </div>
+            {wordPopup.translation && (
+              <div className="word-popup-result">
+                <span className="word-popup-arrow">☞</span>
+                <span className="word-popup-translation">{wordPopup.translation}</span>
+              </div>
+            )}
+            {wordPopup.error && <div className="word-popup-error">{wordPopup.error}</div>}
+            <button className="word-popup-close" onClick={closePopup}>
+              <i className="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </>
+      )}
     </>
   );
 };

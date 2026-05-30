@@ -2,15 +2,15 @@ import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
-import { 
-  BookOpen, 
-  Type, 
-  Image as ImageIcon, 
-  Mic, 
-  Languages, 
-  Plus, 
-  Trash2, 
-  ChevronRight, 
+import {
+  BookOpen,
+  Type,
+  Image as ImageIcon,
+  Mic,
+  Languages,
+  Plus,
+  Trash2,
+  ChevronRight,
   ChevronLeft,
   CheckCircle,
   Loader2,
@@ -58,7 +58,7 @@ const StoryAuthor = () => {
     const { name, files: selectedFiles } = e.target;
     if (selectedFiles[0]) {
       setFiles(prev => ({ ...prev, [name]: selectedFiles[0] }));
-      
+
       if (name === "coverImage") {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -66,7 +66,7 @@ const StoryAuthor = () => {
         };
         reader.readAsDataURL(selectedFiles[0]);
       }
-      
+
       toast.success(`تم اختيار ${name === 'coverImage' ? 'الصورة' : 'الملف الصوتي'} بنجاح`);
     }
   };
@@ -95,7 +95,7 @@ const StoryAuthor = () => {
     if (step === 1 && !formData.title) return toast.error("يرجى إدخال عنوان القصة");
     if (step === 2 && !formData.content) return toast.error("يرجى كتابة محتوى القصة");
     if (step === 3 && !files.coverImage) return toast.error("يرجى اختيار صورة الغلاف");
-    
+
     setStep(prev => Math.min(prev + 1, 4));
   };
 
@@ -111,7 +111,7 @@ const StoryAuthor = () => {
     submitData.append('level', formData.level);
     submitData.append('content', formData.content);
     submitData.append('vocabulary', JSON.stringify(formData.vocabulary));
-    
+
     if (files.coverImage) submitData.append('coverImage', files.coverImage);
     if (files.audioFile) submitData.append('audioFile', files.audioFile);
 
@@ -122,7 +122,7 @@ const StoryAuthor = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       toast.success("تم إرسال القصة بنجاح للمراجعة!");
       // Reset form or redirect
       setStep(1);
@@ -146,19 +146,18 @@ const StoryAuthor = () => {
   return (
     <div className="author-container p-4 md:p-8" dir="rtl">
       <Toaster position="top-center" reverseOrder={false} />
-      
+
       {/* Stepper */}
       <div className="max-w-4xl mx-auto mb-12">
         <div className="flex items-center justify-between relative">
           <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 -translate-y-1/2 z-0"></div>
           {steps.map((s) => (
             <div key={s.id} className="relative z-10 flex flex-col items-center">
-              <div 
-                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 border-4 ${
-                  step >= s.id 
-                  ? 'bg-[#5DA296] border-[#5DA296] text-white shadow-lg shadow-[#5DA296]/30' 
-                  : 'bg-white border-gray-200 text-gray-400'
-                }`}
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 border-4 ${step >= s.id
+                    ? 'bg-[#5DA296] border-[#5DA296] text-white shadow-lg shadow-[#5DA296]/30'
+                    : 'bg-white border-gray-200 text-gray-400'
+                  }`}
               >
                 {step > s.id ? <CheckCircle className="w-6 h-6" /> : s.icon}
               </div>
@@ -175,7 +174,7 @@ const StoryAuthor = () => {
         <div className="lg:col-span-2 space-y-6">
           <AnimatePresence mode="wait">
             {step === 1 && (
-              <motion.div 
+              <motion.div
                 key="step1"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -186,11 +185,11 @@ const StoryAuthor = () => {
                   <BookOpen className="w-7 h-7" />
                   المعلومات الأساسية
                 </h3>
-                
+
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-700">عنوان القصة</label>
-                    <input 
+                    <input
                       type="text"
                       name="title"
                       value={formData.title}
@@ -203,7 +202,7 @@ const StoryAuthor = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-gray-700">اللغة</label>
-                      <select 
+                      <select
                         name="language"
                         value={formData.language}
                         onChange={handleInputChange}
@@ -217,7 +216,7 @@ const StoryAuthor = () => {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-gray-700">المستوى التعليمي</label>
-                      <select 
+                      <select
                         name="level"
                         value={formData.level}
                         onChange={handleInputChange}
@@ -234,7 +233,7 @@ const StoryAuthor = () => {
             )}
 
             {step === 2 && (
-              <motion.div 
+              <motion.div
                 key="step2"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -245,13 +244,13 @@ const StoryAuthor = () => {
                   <Type className="w-7 h-7" />
                   محتوى القصة
                 </h3>
-                
+
                 <div className="space-y-4">
                   <div className="bg-amber-50 text-amber-800 p-4 rounded-2xl flex items-start gap-3 text-sm font-bold border border-amber-100">
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                     <p>اكتب القصة بوضوح. يمكنك استخدام حروف التيفيناغ إذا اخترت اللغة الأمازيغية.</p>
                   </div>
-                  <textarea 
+                  <textarea
                     name="content"
                     value={formData.content}
                     onChange={handleInputChange}
@@ -263,7 +262,7 @@ const StoryAuthor = () => {
             )}
 
             {step === 3 && (
-              <motion.div 
+              <motion.div
                 key="step3"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -274,12 +273,12 @@ const StoryAuthor = () => {
                   <ImageIcon className="w-7 h-7" />
                   الوسائط المتعددة
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Image Upload */}
                   <div className="space-y-4">
                     <label className="text-sm font-bold text-gray-700">صورة الغلاف (إلزامي)</label>
-                    <div 
+                    <div
                       onClick={() => coverInputRef.current.click()}
                       className="aspect-[4/3] border-4 border-dashed border-gray-100 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-gray-50 transition-all overflow-hidden relative group"
                     >
@@ -299,10 +298,10 @@ const StoryAuthor = () => {
                         </>
                       )}
                     </div>
-                    <input 
-                      type="file" 
-                      ref={coverInputRef} 
-                      className="hidden" 
+                    <input
+                      type="file"
+                      ref={coverInputRef}
+                      className="hidden"
                       accept="image/*"
                       name="coverImage"
                       onChange={handleFileChange}
@@ -312,7 +311,7 @@ const StoryAuthor = () => {
                   {/* Audio Upload */}
                   <div className="space-y-4">
                     <label className="text-sm font-bold text-gray-700">الملف الصوتي (اختياري)</label>
-                    <div 
+                    <div
                       onClick={() => audioInputRef.current.click()}
                       className="aspect-[4/3] border-4 border-dashed border-gray-100 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-gray-50 transition-all overflow-hidden"
                     >
@@ -323,10 +322,10 @@ const StoryAuthor = () => {
                         {files.audioFile ? files.audioFile.name : 'رفع ملف MP3'}
                       </span>
                     </div>
-                    <input 
-                      type="file" 
-                      ref={audioInputRef} 
-                      className="hidden" 
+                    <input
+                      type="file"
+                      ref={audioInputRef}
+                      className="hidden"
                       accept="audio/*"
                       name="audioFile"
                       onChange={handleFileChange}
@@ -337,7 +336,7 @@ const StoryAuthor = () => {
             )}
 
             {step === 4 && (
-              <motion.div 
+              <motion.div
                 key="step4"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -348,15 +347,15 @@ const StoryAuthor = () => {
                   <Languages className="w-7 h-7" />
                   الكلمات الصعبة والترجمة
                 </h3>
-                
+
                 <div className="space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-gray-700">الكلمة باللغة الأصلية</label>
-                      <input 
+                      <input
                         type="text"
                         value={currentVocab.word}
-                        onChange={(e) => setCurrentVocab({...currentVocab, word: e.target.value})}
+                        onChange={(e) => setCurrentVocab({ ...currentVocab, word: e.target.value })}
                         className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-[#5DA296]/20 outline-none font-bold"
                         placeholder="مثال: الحضارة"
                       />
@@ -364,14 +363,14 @@ const StoryAuthor = () => {
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-gray-700">الترجمة بالعربية</label>
                       <div className="flex gap-2">
-                        <input 
+                        <input
                           type="text"
                           value={currentVocab.translation}
-                          onChange={(e) => setCurrentVocab({...currentVocab, translation: e.target.value})}
+                          onChange={(e) => setCurrentVocab({ ...currentVocab, translation: e.target.value })}
                           className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-[#5DA296]/20 outline-none font-bold"
                           placeholder="الترجمة..."
                         />
-                        <button 
+                        <button
                           onClick={addVocab}
                           className="bg-[#5DA296] text-white w-14 rounded-2xl flex items-center justify-center hover:bg-[#4a857b] transition-all shadow-lg shadow-[#5DA296]/20"
                         >
@@ -391,7 +390,7 @@ const StoryAuthor = () => {
                             <span className="text-gray-400">←</span>
                             <span className="font-bold mr-2 text-gray-700">{v.translation}</span>
                           </div>
-                          <button 
+                          <button
                             onClick={() => removeVocab(i)}
                             className="text-gray-300 hover:text-red-500 transition-colors"
                           >
@@ -413,21 +412,20 @@ const StoryAuthor = () => {
 
           {/* Navigation Buttons */}
           <div className="flex items-center justify-between pt-6">
-            <button 
+            <button
               onClick={prevStep}
               disabled={step === 1 || loading}
-              className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-bold transition-all ${
-                step === 1 
-                ? 'opacity-0 pointer-events-none' 
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-              }`}
+              className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-bold transition-all ${step === 1
+                  ? 'opacity-0 pointer-events-none'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
             >
               <ChevronRight className="w-5 h-5" />
               السابق
             </button>
 
             {step < 4 ? (
-              <button 
+              <button
                 onClick={nextStep}
                 className="flex items-center gap-2 px-8 py-4 bg-[#5DA296] text-white rounded-2xl font-bold hover:bg-[#4a857b] transition-all shadow-lg shadow-[#5DA296]/20"
               >
@@ -435,7 +433,7 @@ const StoryAuthor = () => {
                 <ChevronLeft className="w-5 h-5" />
               </button>
             ) : (
-              <button 
+              <button
                 onClick={handleSubmit}
                 disabled={loading}
                 className="flex items-center gap-2 px-12 py-4 bg-[#5DA296] text-white rounded-2xl font-bold hover:bg-[#4a857b] transition-all shadow-xl shadow-[#5DA296]/30 disabled:opacity-70"
@@ -460,16 +458,16 @@ const StoryAuthor = () => {
         <div className="space-y-6">
           <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100 sticky top-8">
             <div className="relative aspect-[4/3]">
-              <img 
-                src={previews.coverImage || "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=800"} 
-                className="w-full h-full object-cover" 
-                alt="Story Preview" 
+              <img
+                src={previews.coverImage || "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=800"}
+                className="w-full h-full object-cover"
+                alt="Story Preview"
               />
               <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-xs font-black text-[#5DA296] shadow-sm">
                 {formData.level}
               </div>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div>
                 <h4 className="text-xl font-black text-gray-900 mb-1">

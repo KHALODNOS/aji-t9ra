@@ -13,6 +13,7 @@ router.get("/leaderboard", studentJourneyController.getLeaderboard);
 router.get("/stories", studentJourneyController.getStories);
 router.get("/quizzes", studentJourneyController.getQuizzes);
 router.post("/activity", studentJourneyController.recordActivity);
+router.post("/stories/:storyId/tts", studentJourneyController.generateStorySpeech);
 router.put("/stories/:storyId/progress", studentJourneyController.updateStoryProgress);
 router.post("/quizzes/:examId/attempts", studentJourneyController.submitQuizAttempt);
 router.post("/words/favorite", studentJourneyController.toggleFavoriteWord);

@@ -74,7 +74,7 @@ const storyUpload = multer({
             if (file.fieldname === 'audioFile') {
                 return {
                     folder: 'Linguist/Stories/Audio',
-                    resource_type: 'raw', // Use raw for audio to preserve format
+                    resource_type: 'auto', // Use auto for audio to support media playback correctly
                 };
             }
         },

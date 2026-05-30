@@ -12,6 +12,7 @@ import Achievements from "./Achievements";
 import GeneralChat from "./GeneralChat";
 import StudentProfile from "./StudentProfile";
 import ShowVideo from "./ShowVideo";
+import StudentDictionary from "./StudentDictionary";
 import api from "../../services/api";
 import { publishStudentRewards } from "../../utils/studentRewards";
 
@@ -378,6 +379,8 @@ const StudentDashboard = () => {
         return <EducationalJourney onBack={() => setActivePage("home")} onLogout={handleLogout} />;
       case "speaking":
         return <SpeakingPractice onBack={() => setActivePage("home")} onLogout={handleLogout} />;
+      case "dictionary":
+        return <StudentDictionary onBack={() => setActivePage("home")} onLogout={handleLogout} />;
       case "salons":
         return <AudioSalons onBack={() => setActivePage("home")} onLogout={handleLogout} />;
       case "videos":

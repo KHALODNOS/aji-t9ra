@@ -12,6 +12,7 @@ const StudentSidebar = ({
   const navItems = [
     { id: 'home', label: 'الرئيسية', icon: 'fa-house' },
     { id: 'stories', label: 'مكتبة القصص', icon: 'fa-book-bookmark' },
+    { id: 'dictionary', label: 'قاموسي الذكي', icon: 'fa-book-journal-whills' },
     { id: 'quizzes', label: 'الاختبارات', icon: 'fa-file-circle-question' },
     { id: 'journey', label: 'الرحلة التعليمية', icon: 'fa-book-open' },
     { id: 'speaking', label: 'ممارسة AI', icon: 'fa-robot' },

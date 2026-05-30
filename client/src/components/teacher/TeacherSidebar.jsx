@@ -14,6 +14,7 @@ const TeacherSidebar = ({
     { id: 'author', label: 'مؤلف القصص', icon: 'fa-pen-nib' },
     { id: 'video', label: 'إضافة فيديو قصير', icon: 'fa-video' },
     { id: 'ai', label: 'إعدادات الـ AI', icon: 'fa-robot' },
+    { id: 'wordbank', label: 'بنك الكلمات', icon: 'fa-book-open-reader' },
     { id: 'tests', label: 'الاختبارات', icon: 'fa-vial' },
     { id: 'salons', label: 'الصالونات الصوتية', icon: 'fa-microphone' },
     { id: 'students', label: 'متابعة الطلاب', icon: 'fa-users' },

@@ -26,6 +26,7 @@ app.use("/api/exams", require("./routes/examRoutes"));
 app.use("/api/student/journey", require("./routes/studentJourneyRoutes"));
 app.use("/api/teacher", require("./routes/teacherRoutes"));
 app.use("/api/user", require("./routes/user"));
+app.use("/api/vocabulary", require("./routes/vocabularyRoutes"));
 app.use("/api/voice-rooms", require("./routes/angora"));
 
 connectDB();

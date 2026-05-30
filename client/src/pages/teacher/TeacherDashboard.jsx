@@ -8,6 +8,7 @@ import AudioSalons from "./AudioSalons";
 import Leaderboard from "./Leaderboard";
 import TeacherProfile from "./TeacherProfile";
 import GeneralChat from "../student/GeneralChat";
+import WordBank from "./WordBank";
 
 const TeacherDashboard = ({ onBack }) => {
   const [activePage, setActivePage] = useState("home");
@@ -141,6 +142,8 @@ const TeacherDashboard = ({ onBack }) => {
         return <AddShortVideo onHome={() => setActivePage("home")} />;
       case "ai":
         return <AISettings onHome={() => setActivePage("home")} />;
+      case "wordbank":
+        return <WordBank onHome={() => setActivePage("home")} />;
       case "tests":
         return <TestBank onHome={() => setActivePage("home")} />;
       case "salons":
