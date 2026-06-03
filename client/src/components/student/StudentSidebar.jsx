@@ -21,6 +21,7 @@ const StudentSidebar = ({
     { id: 'leaderboard', label: 'لوحة الصدارة', icon: 'fa-trophy' },
     { id: 'achievements', label: 'الإنجازات', icon: 'fa-award' },
     { id: 'chat', label: 'الدردشة العامة', icon: 'fa-comments' },
+    { id: 'tifinagh', label: 'تعلم التيفيناغ', icon: 'fa-language' },
     { id: 'profile', label: 'الملف الشخصي', icon: 'fa-circle-user' },
   ];
 

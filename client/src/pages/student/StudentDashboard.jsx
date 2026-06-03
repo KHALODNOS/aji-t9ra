@@ -13,6 +13,7 @@ import GeneralChat from "./GeneralChat";
 import StudentProfile from "./StudentProfile";
 import ShowVideo from "./ShowVideo";
 import StudentDictionary from "./StudentDictionary";
+import LearnTifinagh from "./LearnTifinagh";
 import api from "../../services/api";
 import { publishStudentRewards } from "../../utils/studentRewards";
 
@@ -393,6 +394,8 @@ const StudentDashboard = () => {
         return <GeneralChat onBack={() => setActivePage("home")} onLogout={handleLogout} />;
       case "profile":
         return <StudentProfile onBack={() => setActivePage("home")} onLogout={handleLogout} />;
+      case "tifinagh":
+        return <LearnTifinagh onBack={() => setActivePage("home")} />;
       default:
         return renderHomeContent();
     }

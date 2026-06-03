@@ -36,7 +36,7 @@
 }
 
 .sidebar-3d-content {
-  padding: 2rem 1.5rem;
+  padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -127,14 +127,33 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 8px;
+  padding-left: 8px;
+  margin-bottom: 1rem;
+}
+
+/* Custom Scrollbar for navigation */
+.teacher-nav::-webkit-scrollbar {
+  width: 4px;
+}
+.teacher-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.teacher-nav::-webkit-scrollbar-thumb {
+  background: rgba(93, 162, 150, 0.2);
+  border-radius: 4px;
+}
+.teacher-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(93, 162, 150, 0.4);
 }
 
 .nav-item-3d {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0.875rem 1.25rem;
+  gap: 14px;
+  padding: 1rem 1.25rem;
   border-radius: 12px;
   color: #64748b;
   text-decoration: none;

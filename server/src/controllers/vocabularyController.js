@@ -2,14 +2,30 @@ const Vocabulary = require("../models/Vocabulary");
 
 exports.addWord = async (req, res) => {
   try {
-    const { word, translation, language } = req.body;
+    const { word, translation, language, type } = req.body;
     if (!word || !translation || !language) {
       return res.status(400).json({ message: "يرجى تعبئة جميع الحقول." });
     }
+
+    let image = null;
+    let audio = null;
+
+    if (req.files) {
+      if (req.files.image && req.files.image.length > 0) {
+        image = req.files.image[0].path;
+      }
+      if (req.files.audio && req.files.audio.length > 0) {
+        audio = req.files.audio[0].path;
+      }
+    }
+
     const newWord = await Vocabulary.create({
       word,
       translation,
       language,
+      image,
+      audio,
+      type: type || "word",
       teacherId: req.user._id,
     });
     res.status(201).json(newWord);

@@ -84,4 +84,29 @@ const storyUpload = multer({
     { name: 'audioFile', maxCount: 1 }
 ]);
 
-module.exports = { uploadImage, uploadAudio, storyUpload, uploadVideo };
+// Multi-file upload for vocabulary (Image + Audio)
+const vocabularyUpload = multer({
+    storage: new CloudinaryStorage({
+        cloudinary: cloudinary,
+        params: async (req, file) => {
+            if (file.fieldname === 'image') {
+                return {
+                    folder: 'Linguist/Vocabulary/Images',
+                    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+                };
+            }
+            if (file.fieldname === 'audio') {
+                return {
+                    folder: 'Linguist/Vocabulary/Audio',
+                    resource_type: 'auto',
+                    allowed_formats: ['mp3', 'wav', 'ogg']
+                };
+            }
+        },
+    }),
+}).fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'audio', maxCount: 1 }
+]);
+
+module.exports = { uploadImage, uploadAudio, storyUpload, uploadVideo, vocabularyUpload };

@@ -31,6 +31,14 @@ const formatTime = (value) => {
   return date.toLocaleTimeString("ar-MA", { hour: "2-digit", minute: "2-digit" });
 };
 
+const getRoleLabel = (role) => {
+  if (!role) return "طالب";
+  const lowerRole = role.toLowerCase();
+  if (lowerRole === "teacher") return "أستاذ";
+  if (lowerRole === "admin") return "مدير";
+  return "طالب";
+};
+
 const GeneralChat = () => {
   const { socket: contextSocket } = useSocket();
   const [localSocket, setLocalSocket] = useState(null);
@@ -583,7 +591,11 @@ const GeneralChat = () => {
                     </div>
                   )}
                   <div className="message-bubble">
-                    <span className="message-sender">{isMine ? "أنت" : message.sender?.name || "طالب"}</span>
+                    <span className="message-sender">
+                      {isMine 
+                        ? "أنت" 
+                        : `${getRoleLabel(message.sender?.role)} - ${message.sender?.name || "طالب"}`}
+                    </span>
                     <div className="message-text">{message.text}</div>
                     <span className="message-time">{formatTime(message.createdAt)}</span>
                   </div>
