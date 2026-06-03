@@ -96,6 +96,26 @@ const StoryAuthor = () => {
     if (step === 2 && !formData.content) return toast.error("يرجى كتابة محتوى القصة");
     if (step === 3 && !files.coverImage) return toast.error("يرجى اختيار صورة الغلاف");
 
+    if (step === 3 && formData.language === "Tifinagh") {
+      // Auto-extract unique words from content
+      // Use Tifinagh unicode range or a general word matcher if mixed
+      const words = formData.content.match(/[\u2D30-\u2D7F]+/g) || [];
+      const uniqueWords = [...new Set(words)];
+      
+      const existingWords = formData.vocabulary.map(v => v.word);
+      const newVocab = uniqueWords
+        .filter(w => !existingWords.includes(w))
+        .map(w => ({ word: w, translation: "" }));
+        
+      if (newVocab.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          vocabulary: [...prev.vocabulary, ...newVocab]
+        }));
+        toast.success(`تم استخراج ${newVocab.length} كلمة تلقائياً`);
+      }
+    }
+
     setStep(prev => Math.min(prev + 1, 4));
   };
 
@@ -105,12 +125,15 @@ const StoryAuthor = () => {
     setLoading(true);
     const token = localStorage.getItem('token');
 
+    // Filter out words that have no translation to avoid submitting empty translations
+    const cleanVocabulary = formData.vocabulary.filter(v => v.word && v.translation.trim() !== "");
+
     const submitData = new FormData();
     submitData.append('title', formData.title);
     submitData.append('language', formData.language);
     submitData.append('level', formData.level);
     submitData.append('content', formData.content);
-    submitData.append('vocabulary', JSON.stringify(formData.vocabulary));
+    submitData.append('vocabulary', JSON.stringify(cleanVocabulary));
 
     if (files.coverImage) submitData.append('coverImage', files.coverImage);
     if (files.audioFile) submitData.append('audioFile', files.audioFile);
@@ -351,7 +374,7 @@ const StoryAuthor = () => {
                 <div className="space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-gray-700">الكلمة باللغة الأصلية</label>
+                      <label className="text-sm font-bold text-gray-700">إضافة كلمة جديدة (اختياري)</label>
                       <input
                         type="text"
                         value={currentVocab.word}
@@ -381,21 +404,35 @@ const StoryAuthor = () => {
                   </div>
 
                   <div className="space-y-4">
-                    <h4 className="text-lg font-bold text-gray-700">قائمة الكلمات ({formData.vocabulary.length})</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <h4 className="text-lg font-bold text-gray-700 flex items-center justify-between">
+                      <span>قائمة الكلمات ({formData.vocabulary.length})</span>
+                      {formData.language === "Tifinagh" && (
+                        <span className="text-xs text-[#5DA296] bg-[#5DA296]/10 px-3 py-1 rounded-full">تم استخراج كلمات تيفيناغ تلقائياً</span>
+                      )}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {formData.vocabulary.map((v, i) => (
-                        <div key={i} className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100 group">
-                          <div>
-                            <span className="font-black text-[#5DA296] ml-2">{v.word}</span>
-                            <span className="text-gray-400">←</span>
-                            <span className="font-bold mr-2 text-gray-700">{v.translation}</span>
+                        <div key={i} className="flex flex-col gap-2 bg-gray-50 p-4 rounded-2xl border border-gray-100 group">
+                          <div className="flex items-center justify-between">
+                            <span className="font-black text-[#5DA296] text-lg">{v.word}</span>
+                            <button
+                              onClick={() => removeVocab(i)}
+                              className="text-gray-300 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
                           </div>
-                          <button
-                            onClick={() => removeVocab(i)}
-                            className="text-gray-300 hover:text-red-500 transition-colors"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
+                          <input 
+                            type="text"
+                            value={v.translation}
+                            onChange={(e) => {
+                              const newVocab = [...formData.vocabulary];
+                              newVocab[i].translation = e.target.value;
+                              setFormData({ ...formData, vocabulary: newVocab });
+                            }}
+                            className={`w-full bg-white border ${!v.translation ? 'border-amber-300' : 'border-gray-200'} rounded-xl p-2 text-sm focus:ring-2 focus:ring-[#5DA296]/20 outline-none font-bold transition-all`}
+                            placeholder="أدخل الترجمة..."
+                          />
                         </div>
                       ))}
                       {formData.vocabulary.length === 0 && (

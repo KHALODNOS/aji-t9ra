@@ -255,19 +255,39 @@ const StudentStories = ({ onOpenJourney }) => {
 
   const translateWord = async (word) => {
     setWordPopup((prev) => ({ ...prev, loading: true, translation: null, error: null }));
+    
+    // First check if the word is in the story's specific vocabulary bank
+    if (selectedStory?.vocabulary) {
+      const vocabMatch = selectedStory.vocabulary.find(v => 
+        v.word.trim() === word.trim() || v.word.toLowerCase() === word.toLowerCase()
+      );
+      if (vocabMatch) {
+        setWordPopup((prev) => prev ? { ...prev, loading: false, translation: vocabMatch.translation } : null);
+        return;
+      }
+    }
+
+    // For Tifinagh, if it's not in the vocabulary, skip API completely and show the requested message
+    if (selectedStory?.language === 'Tifinagh') {
+      setWordPopup((prev) => prev ? { ...prev, loading: false, translation: 'لا توجد ترجمة للكلمة' } : null);
+      return;
+    }
+
     try {
       const langPair = selectedStory?.language === 'English' ? 'en|ar' : 'fr|ar';
       const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=${langPair}`);
       const data = await res.json();
       const translation = data?.responseData?.translatedText;
-      setWordPopup((prev) => prev ? { ...prev, loading: false, translation: translation || '—' } : null);
+      
+      setWordPopup((prev) => prev ? { ...prev, loading: false, translation: translation || 'لا توجد ترجمة للكلمة' } : null);
     } catch {
-      setWordPopup((prev) => prev ? { ...prev, loading: false, error: 'فشل الترجمة' } : null);
+      setWordPopup((prev) => prev ? { ...prev, loading: false, error: 'لا توجد ترجمة للكلمة' } : null);
     }
   };
 
   const handleWordClick = (e, word) => {
-    const clean = word.replace(/[^\u0600-\u06FFa-zA-ZÀ-ÿ\-']/g, '').trim();
+    // Added Tifinagh unicode range \u2D30-\u2D7F
+    const clean = word.replace(/[^\u0600-\u06FFa-zA-ZÀ-ÿ\u2D30-\u2D7F\-']/g, '').trim();
     if (!clean) return;
     const rect = e.target.getBoundingClientRect();
     setWordPopup({ word: clean, x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY + 8, translation: null, loading: false, error: null });
