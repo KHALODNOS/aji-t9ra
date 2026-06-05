@@ -1,5 +1,5 @@
-import Register from './auth/register';
-import Login from './auth/login';
+import Register from './auth/Register';
+import Login from './auth/Login';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import StudentDashboard from './pages/student/StudentDashboard';
