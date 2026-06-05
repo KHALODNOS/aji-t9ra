@@ -11,7 +11,7 @@ const StudentDictionary = () => {
   const fetchWords = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/vocabulary/student", {
+      const res = await axios.get(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/vocabulary/student`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setWords(res.data);

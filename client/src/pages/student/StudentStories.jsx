@@ -8,7 +8,7 @@ const FALLBACK_COVER = "https://images.unsplash.com/photo-1455885666463-9b6b53f0
 const getMediaUrl = (path) => {
   if (!path) return FALLBACK_COVER;
   if (path.startsWith("http")) return path;
-  return `http://localhost:5000/${path.replace(/\\/g, "/")}`;
+  return `${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/${path.replace(/\\/g, "/")}`;
 };
 
 const languageLabels = {

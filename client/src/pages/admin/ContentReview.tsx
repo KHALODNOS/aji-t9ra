@@ -97,7 +97,7 @@ const ContentReview = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`http://localhost:5000/api/admin/pending-content?type=${activeTab}`, {
+      const response = await axios.get(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/admin/pending-content?type=${activeTab}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setItems(response.data);
@@ -116,7 +116,7 @@ const ContentReview = () => {
   const handleApprove = async (id: string, type: string) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`http://localhost:5000/api/admin/approve-content/${id}?contentType=${type}`, {}, {
+      await axios.put(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/admin/approve-content/${id}?contentType=${type}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success("تمت الموافقة على المحتوى ونشره");
@@ -130,7 +130,7 @@ const ContentReview = () => {
   const handleReject = async (id: string, type: string) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/admin/reject-content/${id}?contentType=${type}`, {
+      await axios.delete(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/admin/reject-content/${id}?contentType=${type}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success("تم رفض المحتوى وحذفه");
@@ -147,7 +147,7 @@ const ContentReview = () => {
     if (selectedItems.length === 0) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.post(`http://localhost:5000/api/admin/bulk-approve`, {
+      await axios.post(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/admin/bulk-approve`, {
         contentIds: selectedItems,
         contentType: activeTab === 'stories' ? 'story' : activeTab
       }, {
@@ -166,7 +166,7 @@ const ContentReview = () => {
     if (!window.confirm(`هل أنت متأكد من رفض وحذف ${selectedItems.length} عناصر؟`)) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.post(`http://localhost:5000/api/admin/bulk-reject`, {
+      await axios.post(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/admin/bulk-reject`, {
         contentIds: selectedItems,
         contentType: activeTab === 'stories' ? 'story' : activeTab
       }, {

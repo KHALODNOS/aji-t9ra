@@ -19,7 +19,7 @@ const WordBank = () => {
   const fetchWords = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/vocabulary/teacher", {
+      const res = await axios.get(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/vocabulary/teacher`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setWords(res.data);
@@ -60,7 +60,7 @@ const WordBank = () => {
       if (imageFile) submitData.append("image", imageFile);
       if (audioFile && formData.language === "Tamazight") submitData.append("audio", audioFile);
 
-      const res = await axios.post("http://localhost:5000/api/vocabulary", submitData, {
+      const res = await axios.post(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/vocabulary`, submitData, {
         headers: { 
           Authorization: `Bearer ${token}`
         },
@@ -84,7 +84,7 @@ const WordBank = () => {
     if (!window.confirm("هل أنت متأكد من حذف هذه الكلمة؟")) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/vocabulary/${id}`, {
+      await axios.delete(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/vocabulary/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setWords(words.filter((w) => w._id !== id));

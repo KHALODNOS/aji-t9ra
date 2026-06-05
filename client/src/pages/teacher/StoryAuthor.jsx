@@ -139,7 +139,7 @@ const StoryAuthor = () => {
     if (files.audioFile) submitData.append('audioFile', files.audioFile);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/stories", submitData, {
+      const response = await axios.post(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/stories`, submitData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`

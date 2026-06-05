@@ -16,7 +16,7 @@ const NotificationBell = () => {
     const fetchNotifications = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/api/notifications', {
+            const response = await axios.get(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/notifications`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setNotifications(response.data);
@@ -60,7 +60,7 @@ const NotificationBell = () => {
     const markAsRead = async (id: string) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`http://localhost:5000/api/notifications/${id}/read`, {}, {
+            await axios.put(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/notifications/${id}/read`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setNotifications(notifications.map(n => n._id === id ? { ...n, isRead: true } : n));

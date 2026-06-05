@@ -4,9 +4,9 @@ import api from "../../services/api";
 const FALLBACK_AVATAR = "avatar.png";
 
 const getMediaUrl = (path) => {
-  if (!path) return `http://localhost:5000/${FALLBACK_AVATAR}`;
+  if (!path) return `${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/${FALLBACK_AVATAR}`;
   if (path.startsWith("http")) return path;
-  return `http://localhost:5000/${path.replace(/\\/g, "/")}`;
+  return `${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/${path.replace(/\\/g, "/")}`;
 };
 
 const levelLabels = {

@@ -7,7 +7,7 @@ const FALLBACK_AVATAR = "https://images.unsplash.com/photo-1535713875002-d1d0cf3
 const getMediaUrl = (path) => {
   if (!path) return FALLBACK_AVATAR;
   if (path.startsWith("http")) return path;
-  return `http://localhost:5000/${path.replace(/\\/g, "/")}`;
+  return `${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/${path.replace(/\\/g, "/")}`;
 };
 
 const getLevelClass = (level = "") => {

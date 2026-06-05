@@ -73,7 +73,7 @@ const AddShortVideo = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://localhost:5000/api/videos/upload", data, {
+      await axios.post(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/videos/upload`, data, {
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "multipart/form-data"

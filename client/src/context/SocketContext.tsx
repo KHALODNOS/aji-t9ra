@@ -20,7 +20,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const userId = user._id || user.id;
 
         if (token && userId) {
-            const newSocket = io('http://localhost:5000');
+            const newSocket = io(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}`);
             
             newSocket.on('connect', () => {
                 console.log('Connected to socket server');

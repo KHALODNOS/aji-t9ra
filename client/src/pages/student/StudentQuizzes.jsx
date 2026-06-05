@@ -7,7 +7,7 @@ const FALLBACK_QUIZ_IMAGE = "https://images.unsplash.com/photo-1434030216411-0b7
 const getMediaUrl = (path) => {
   if (!path) return FALLBACK_QUIZ_IMAGE;
   if (path.startsWith("http")) return path;
-  return `http://localhost:5000/${path.replace(/\\/g, "/")}`;
+  return `${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/${path.replace(/\\/g, "/")}`;
 };
 
 const languageLabels = {

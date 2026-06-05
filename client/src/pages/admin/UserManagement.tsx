@@ -37,8 +37,8 @@ const UserManagement = () => {
     try {
       setLoading(true);
       const [pendingRes, allUsersRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/admin/pending-teachers', config),
-        axios.get('http://localhost:5000/api/admin/users', config)
+        axios.get(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/admin/pending-teachers`, config),
+        axios.get(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/admin/users`, config)
       ]);
       setPendingTeachers(pendingRes.data);
       setAllUsers(allUsersRes.data);
@@ -55,7 +55,7 @@ const UserManagement = () => {
 
   const handleApprove = async (userId: string) => {
     try {
-      await axios.put(`http://localhost:5000/api/admin/approve-teacher/${userId}`, {}, config);
+      await axios.put(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/admin/approve-teacher/${userId}`, {}, config);
       setSelectedTeacher(null);
       fetchData();
     } catch (error) {
@@ -66,7 +66,7 @@ const UserManagement = () => {
   const handleReject = async (userId: string) => {
     try {
       if (window.confirm('هل أنت متأكد من رفض وحذف هذا الطلب؟')) {
-        await axios.delete(`http://localhost:5000/api/admin/reject-teacher/${userId}`, config);
+        await axios.delete(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/admin/reject-teacher/${userId}`, config);
         setSelectedTeacher(null);
         fetchData();
       }
@@ -77,7 +77,7 @@ const UserManagement = () => {
 
   const handleToggleStatus = async (userId: string) => {
     try {
-      await axios.put(`http://localhost:5000/api/admin/toggle-status/${userId}`, {}, config);
+      await axios.put(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/admin/toggle-status/${userId}`, {}, config);
       fetchData();
     } catch (error) {
       console.error('Error toggling status:', error);

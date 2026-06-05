@@ -6,7 +6,7 @@ const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1544947950-fa07a98d237
 const getMediaUrl = (path) => {
   if (!path) return FALLBACK_IMAGE;
   if (path.startsWith("http")) return path;
-  return `http://localhost:5000/${path.replace(/\\/g, "/")}`;
+  return `${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/${path.replace(/\\/g, "/")}`;
 };
 
 const formatDate = (value) => {

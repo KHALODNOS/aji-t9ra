@@ -64,8 +64,8 @@ const StudentDashboard = () => {
         const config = { headers: { Authorization: `Bearer ${token}` } };
         
         const [storiesRes, videosRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/stories/approved", config),
-          axios.get("http://localhost:5000/api/videos/approved", config)
+          axios.get(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/stories/approved`, config),
+          axios.get(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/api/videos/approved`, config)
         ]);
 
         setStories(storiesRes.data);
@@ -90,7 +90,7 @@ const StudentDashboard = () => {
   const getServerUrl = (path) => {
     if (!path) return "https://images.unsplash.com/photo-1538964173425-85c6a41d3b4b?w=600";
     if (path.startsWith("http")) return path;
-    return `http://localhost:5000/${path.replace(/\\/g, '/')}`;
+    return `${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}/${path.replace(/\\/g, '/')}`;
   };
 
   const getGradient = (index) => {

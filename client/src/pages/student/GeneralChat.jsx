@@ -58,7 +58,7 @@ const GeneralChat = () => {
     const token = localStorage.getItem("token");
     if (!token || !currentUser.id) return undefined;
 
-    const nextSocket = io("http://localhost:5000");
+    const nextSocket = io(`${import.meta.env.VITE_REACT_APP_BACKEND_BASEURL}`);
     nextSocket.on("connect", () => {
       nextSocket.emit("join", currentUser.id);
     });
